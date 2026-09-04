@@ -72,7 +72,7 @@ Message delivery status is displayed using tick indicators.
 
 ---
 
-# 👩‍💻 Author
+# Author
 
 **Aniket Shelke**
 
