@@ -15,9 +15,9 @@ app.use("/api/chat", require("./routes/chatRoutes"));
 app.use("/api/message", require("./routes/messageRoutes"));
 app.use("/api/upload", require("./routes/uploadRoutes"));
 
-const PORT=5000
-const server = app.listen(process.env.PORT, () =>
-  console.log("Server running" ,PORT)
+const PORT = process.env.PORT || 5000;
+const server = app.listen(PORT, () =>
+  console.log("Server running on port", PORT)
 );
 
 const io = require("socket.io")(server, {

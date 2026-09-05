@@ -1,9 +1,7 @@
-// import { io } from "socket.io-client";
-
-// export const socket = io("http://localhost:5000");
-
 import { io } from "socket.io-client";
 
-export const socket = io("http://localhost:5000", {
+const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+
+export const socket = io(backendUrl, {
   transports: ["websocket"],
 });
