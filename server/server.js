@@ -7,8 +7,17 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  })
+);
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("Chat App API Server is running successfully!");
+});
 
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/chat", require("./routes/chatRoutes"));
