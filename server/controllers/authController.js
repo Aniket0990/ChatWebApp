@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const Message = require("../models/Message");
+const Chat = require("../models/Chat");
 
 exports.register = async (req, res) => {
   try {
@@ -50,15 +52,69 @@ exports.login = async (req, res) => {
   }
 };
 
-// GET ALL USERS (except logged user)
+// GET ALL USERS (except logged user) with WhatsApp-style extras:
+// lastMessage (preview + time + direction) and unreadCount (messages they
+// sent that the logged-in user hasn't seen yet).
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find({
       _id: { $ne: req.user.id },
     }).select("-password");
 
-    res.json(users);
+    // Find 1:1 chats of the logged-in user, populated to read both members
+    const chats = await Chat.find({
+      users: req.user.id,
+      isGroupChat: false,
+    }).populate("users", "_id");
+
+    const chatByOtherUserId = {};
+    chats.forEach((c) => {
+      const other = c.users.find(
+        (u) => u._id.toString() !== req.user.id.toString(),
+      );
+      if (other) chatByOtherUserId[other._id.toString()] = c._id;
+    });
+
+    const usersWithMeta = await Promise.all(
+      users.map(async (u) => {
+        const chatId = chatByOtherUserId[u._id.toString()];
+        const plain = u.toObject();
+
+        if (!chatId) {
+          return { ...plain, lastMessage: null, unreadCount: 0 };
+        }
+
+        // Latest non-deleted message in this chat
+        const lastMsg = await Message.findOne({ chat: chatId, isDeleted: false })
+          .sort({ createdAt: -1 })
+          .select("content fileUrl sender status createdAt");
+
+        // Unread = messages FROM the other user that are not seen
+        const unreadCount = await Message.countDocuments({
+          chat: chatId,
+          isDeleted: false,
+          sender: u._id,
+          status: { $ne: "seen" },
+        });
+
+        return {
+          ...plain,
+          lastMessage: lastMsg
+            ? {
+                content: lastMsg.content,
+                hasAttachment: Boolean(lastMsg.fileUrl),
+                isMine: lastMsg.sender.toString() === req.user.id.toString(),
+                createdAt: lastMsg.createdAt,
+              }
+            : null,
+          unreadCount,
+        };
+      }),
+    );
+
+    res.json(usersWithMeta);
   } catch (error) {
+    console.error("getAllUsers error:", error);
     res.status(500).json({ message: "Failed to fetch users" });
   }
 };

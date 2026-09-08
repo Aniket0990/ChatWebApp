@@ -26,6 +26,39 @@ html.dark {
   animation: fadeIn 0.25s ease;
 }
 
+/* Mobile slide-in animations (chat panel from right, profile drawer over chat) */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.28s ease-out;
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.28s ease-out;
+}
+
+/* Chat page fills the viewport, never scrolls the body (mobile safe areas) */
+.chat-page-height {
+  height: 100vh;
+  height: 100dvh;
+}
+
 @keyframes pulseHighlight {
   0%, 100% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);

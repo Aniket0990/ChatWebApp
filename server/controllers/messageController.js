@@ -155,6 +155,24 @@ exports.togglePinMessage = async (req, res) => {
   }
 };
 
+// Clear entire chat for the current user only
+// (adds the user to deletedFor on every message so getMessages hides them)
+exports.clearChat = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+
+    await Message.updateMany(
+      { chat: chatId, deletedFor: { $ne: req.user.id } },
+      { $addToSet: { deletedFor: req.user.id } },
+    );
+
+    res.json({ message: "Chat cleared" });
+  } catch (error) {
+    console.error("Error clearing chat:", error);
+    res.status(500).json({ error: "Failed to clear chat" });
+  }
+};
+
 // React to message with emoji
 exports.reactMessage = async (req, res) => {
   try {

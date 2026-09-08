@@ -49,11 +49,18 @@ module.exports = (io) => {
 
     // MESSAGE SEEN
     socket.on("message seen", async ({ messageId, chatId }) => {
-      await Message.findByIdAndUpdate(messageId, {
+      const message = await Message.findByIdAndUpdate(messageId, {
         status: "seen",
       });
 
       socket.to(chatId).emit("message seen", messageId);
+
+      // Tell the sender their sidebar unread badge for this receiver is cleared
+      if (message?.sender) {
+        socket
+          .to(message.sender.toString())
+          .emit("message seen status", { userId: socket.userId });
+      }
     });
 
     // MESSAGE EDITED

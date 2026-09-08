@@ -5,6 +5,8 @@ import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import EmojiPicker from "emoji-picker-react";
+import Avatar from "../components/Avatar";
+import DocumentPreviewModal from "../components/DocumentPreviewModal";
 import {
   FiSend,
   FiPaperclip,
@@ -19,14 +21,19 @@ import {
   FiRefreshCw,
   FiSearch,
   FiArrowLeft,
+  FiMessageCircle,
   FiCamera,
   FiLock,
   FiLogOut,
   FiCheck,
   FiSettings,
+  FiEye,
+  FiDownload,
 } from "react-icons/fi";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
 import { IoCheckmark, IoCheckmarkDone, IoMoon, IoSunny } from "react-icons/io5";
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 export default function Chat() {
   const { user, setUser, logout } = useContext(AuthContext);
@@ -81,6 +88,18 @@ export default function Chat() {
   // Logout Confirmation Modal
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  // Chat header menu & Clear Chat confirmation modal
+  const [showChatMenu, setShowChatMenu] = useState(false);
+  const [showClearChatConfirm, setShowClearChatConfirm] = useState(false);
+
+  // File drag & drop upload + document preview modal
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null); // { url, name, mimeType }
+
+  // Mobile/tablet layout: which panel is visible below lg screens.
+  // false = chat list (with bottom tab bar), true = open chat view.
+  const [mobileShowChat, setMobileShowChat] = useState(false);
+
   // Message actions & state
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
@@ -125,6 +144,28 @@ export default function Chat() {
           });
         }
       }
+
+      // Update the sidebar preview/badge for this sender
+      if (msg.sender._id !== user.user._id) {
+        const isActiveChat = currentChat && msg.chat._id === currentChat._id;
+        setUsers((prev) =>
+          prev.map((u) =>
+            u._id === msg.sender._id
+              ? {
+                  ...u,
+                  lastMessage: {
+                    content: msg.content,
+                    hasAttachment: Boolean(msg.fileUrl),
+                    isMine: false,
+                    createdAt: msg.createdAt,
+                  },
+                  // Only count unread when the chat isn't open on screen
+                  unreadCount: isActiveChat ? 0 : (u.unreadCount || 0) + 1,
+                }
+              : u,
+          ),
+        );
+      }
     });
 
     socket.on("message delivered", (messageId) => {
@@ -139,6 +180,15 @@ export default function Chat() {
       setMessages((prev) =>
         prev.map((m) => (m._id === messageId ? { ...m, status: "seen" } : m)),
       );
+    });
+
+    // My sent message was seen by the receiver -> clear their unread badge
+    socket.on("message seen status", ({ userId }) => {
+      if (userId) {
+        setUsers((prev) =>
+          prev.map((u) => (u._id === userId ? { ...u, unreadCount: 0 } : u)),
+        );
+      }
     });
 
     socket.on("message edited", (updatedMsg) => {
@@ -185,6 +235,7 @@ export default function Chat() {
       socket.off("message received");
       socket.off("message delivered");
       socket.off("message seen");
+    socket.off("message seen status");
       socket.off("message edited");
       socket.off("message deleted");
       socket.off("message pinned");
@@ -210,6 +261,9 @@ export default function Chat() {
       }
       if (!e.target.closest(".message-reaction-container")) {
         setActiveReactionId(null);
+      }
+      if (!e.target.closest(".chat-header-menu")) {
+        setShowChatMenu(false);
       }
       if (
         emojiPickerRef.current &&
@@ -247,6 +301,7 @@ export default function Chat() {
     setReplyingTo(null);
     setEditingMessage(null);
     setMessage("");
+    setMobileShowChat(true);
 
     try {
       const { data } = await axios.post(
@@ -264,12 +319,19 @@ export default function Chat() {
 
       setMessages(messagesRes.data);
 
-      // Mark unread messages as seen
+      // Mark unread messages as seen + clear sidebar badge for this user
+      let hasUnseen = false;
       messagesRes.data.forEach((msg) => {
         if (msg.status !== "seen" && msg.sender._id !== user.user._id) {
+          hasUnseen = true;
           socket.emit("message seen", { messageId: msg._id, chatId: data._id });
         }
       });
+      if (hasUnseen) {
+        setUsers((prev) =>
+          prev.map((x) => (x._id === u._id ? { ...x, unreadCount: 0 } : x)),
+        );
+      }
     } catch (err) {
       toast.error("Failed to load chat");
     }
@@ -341,6 +403,66 @@ export default function Chat() {
     typingTimeout.current = setTimeout(() => {
       socket.emit("stop typing", currentChat._id);
     }, 1500);
+  };
+
+  // FILE DRAG & DROP (adapted from KARYAH-v3 Chatbox)
+  const handleGlobalDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
+      setIsDraggingFile(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only stop showing the overlay once the cursor truly left the container
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+
+    if (x <= rect.left || x >= rect.right || y <= rect.top || y >= rect.bottom) {
+      setIsDraggingFile(false);
+    }
+  };
+
+  const handleFileDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+
+    const droppedFiles = e.dataTransfer?.files;
+    if (droppedFiles && droppedFiles.length > 0) {
+      uploadFile(droppedFiles[0]);
+    }
+  };
+
+  // Shared upload helper used by both the picker button and drag & drop
+  const uploadFile = async (file) => {
+    if (!file || !currentChat) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      toast.info("Uploading file...");
+      const { data } = await axios.post("/upload", formData, {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      await sendMessage(data.url);
+      toast.success("File sent");
+    } catch {
+      toast.error("File upload failed");
+    }
   };
 
   // START EDITING
@@ -592,6 +714,35 @@ export default function Chat() {
     navigate("/login");
   };
 
+  // CLEAR CHAT (for this user only)
+  const handleClearChat = async () => {
+    setShowClearChatConfirm(false);
+    if (!currentChat) return;
+    try {
+      await axios.delete(`/message/clear/${currentChat._id}`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      setMessages([]);
+      toast.success("Chat cleared");
+    } catch (err) {
+      toast.error("Failed to clear chat");
+    }
+  };
+
+  // CLOSE CHAT (deselect current user)
+  const handleCloseChat = () => {
+    setShowChatMenu(false);
+    setMobileShowChat(false);
+    setSelectedUser(null);
+    setCurrentChat(null);
+    setMessages([]);
+    setReplyingTo(null);
+    setEditingMessage(null);
+    setMessage("");
+    setIsSearching(false);
+    setSearchQuery("");
+  };
+
   // SEARCH HELPER: Highlight matching text in message content
   const renderMessageContent = (content) => {
     if (!isSearching || !searchQuery.trim() || !content) return content;
@@ -616,6 +767,84 @@ export default function Chat() {
         part
       ),
     );
+  };
+
+  // ATTACHMENT HELPERS (adapted from KARYAH-v3 Chatbox)
+  // Handles both absolute (cloudinary images) and relative (/api/upload/file/... docs) urls
+  const getFileUrl = (url) =>
+    url?.startsWith("/") ? `${backendUrl}${url}` : url;
+
+  const getAttachmentInfo = (rawUrl) => {
+    const url = getFileUrl(rawUrl);
+    const lower = (url || "").toLowerCase();
+    const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)(\?|$)/.test(lower);
+    const isPdf = /\.pdf(\?|$)/.test(lower);
+    const isVideo = /\.(mp4|webm|ogg|mov|avi|mkv)(\?|$)/.test(lower);
+    const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac|opus)(\?|$)/.test(lower);
+    const rawName = (url || "").split("/").pop() || "file";
+    const name = decodeURIComponent(rawName.split("?")[0]).replace(
+      /^\d{10,}[-_]/,
+      "",
+    );
+    const type = isImage
+      ? "image"
+      : isPdf
+        ? "pdf"
+        : isVideo
+          ? "video"
+          : isAudio
+            ? "audio"
+            : "doc";
+    const labels = {
+      image: "Image",
+      pdf: "PDF Document",
+      video: "Video",
+      audio: "Audio",
+      doc: "Document",
+    };
+    const colors = {
+      image: "#3B82F6",
+      pdf: "#EF4444",
+      video: "#8B5CF6",
+      audio: "#EC4899",
+      doc: "#1070b9",
+    };
+    return { isImage, type, name, label: labels[type], color: colors[type] };
+  };
+
+  // DOWNLOAD ATTACHMENT — fetched as an authenticated blob so restricted files
+  // (cloudinary PDFs / locally stored docs) always download with a clean name.
+  const handleDownloadAttachment = async (rawUrl) => {
+    try {
+      const info = getAttachmentInfo(rawUrl);
+      let blob;
+
+      if (rawUrl?.startsWith("/")) {
+        // Locally stored doc — strip the leading /api because axios baseURL
+        // already ends with /api (otherwise the path doubles: /api/api/...)
+        const res = await axios.get(rawUrl.replace(/^\/api/, ""), {
+          responseType: "blob",
+        });
+        blob = res.data;
+      } else {
+        // Cloudinary-hosted (images/legacy files) — download directly
+        const res = await fetch(rawUrl);
+        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+        blob = await res.blob();
+      }
+
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = info.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Download failed", err);
+      toast.error("Download failed");
+    }
   };
 
   // MATCHING MESSAGES FOR SEARCH NAVIGATION
@@ -645,6 +874,21 @@ export default function Chat() {
   };
 
   // DATE HELPERS
+  // Sidebar list time: today -> HH:MM, yesterday -> "Yesterday", else date
+  const formatListTime = (dateString) => {
+    if (!dateString) return "";
+    const d = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (d.toDateString() === today.toDateString()) {
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return d.toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", year: "numeric" });
+  };
+
   const formatMessageDate = (dateString) => {
     if (!dateString) return "";
     const msgDate = new Date(dateString);
@@ -675,13 +919,15 @@ export default function Chat() {
 
   return (
     <div
-      className={`h-screen flex select-none font-sans ${
+      className={`chat-page-height flex select-none font-sans relative overflow-hidden ${
         darkMode ? "dark bg-[#0c1317] text-[#e9edef]" : "bg-[#f0f2f5] text-gray-800"
       }`}
     >
       {/* SIDEBAR */}
       <div
-        className={`w-80 md:w-96 border-r flex flex-col shadow-sm relative overflow-hidden transition-colors duration-200 ${
+        className={`w-full lg:w-96 border-r flex flex-col shadow-sm relative overflow-hidden transition-colors duration-200 max-lg:absolute max-lg:inset-0 max-lg:z-40 max-lg:transition-transform max-lg:duration-300 ${
+          mobileShowChat ? "max-lg:-translate-x-full" : ""
+        } ${
           darkMode ? "bg-[#111b21] border-[#222e35]" : "bg-white border-gray-200"
         }`}
       >
@@ -694,11 +940,11 @@ export default function Chat() {
             }`}
           >
             <h1
-              className={`text-2xl font-bold tracking-tight select-none ${
+              className={`text-xl sm:text-2xl font-bold tracking-tight select-none ${
                 darkMode ? "text-emerald-500" : "text-emerald-600"
               }`}
             >
-              Chat Box
+              Friends Chat App
             </h1>
           </div>
 
@@ -768,10 +1014,10 @@ export default function Chat() {
                     }`}
                   >
                     <div className="relative shrink-0">
-                      <img
-                        src={u.profilePic || "/default.png"}
-                        className="w-12 h-12 rounded-full object-cover shadow-2xs"
-                        alt={u.name}
+                      <Avatar
+                        src={u.profilePic}
+                        name={u.name}
+                        className="w-12 h-12 rounded-full object-cover shadow-2xs text-xl"
                       />
                       <span
                         className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 ${
@@ -785,9 +1031,10 @@ export default function Chat() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
+                      {/* Row 1: name + time (time always on this line) */}
+                      <div className="flex items-center justify-between gap-2">
                         <p
-                          className={`text-sm truncate ${
+                          className={`text-sm truncate leading-tight ${
                             isSelected
                               ? darkMode ? "text-emerald-400 font-semibold" : "text-emerald-900 font-semibold"
                               : darkMode ? "text-[#e9edef]" : "text-gray-800"
@@ -795,30 +1042,66 @@ export default function Chat() {
                         >
                           {u.name}
                         </p>
-                      </div>
-                      <p className="text-xs text-gray-400 truncate mt-0.5">
-                        {u.isOnline ? (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                            Online
+                        {u.lastMessage?.createdAt && (
+                          <span
+                            className={`text-[10px] whitespace-nowrap shrink-0 leading-tight ${
+                              u.unreadCount > 0
+                                ? darkMode
+                                  ? "text-emerald-400 font-semibold"
+                                  : "text-emerald-600 font-semibold"
+                                : darkMode
+                                  ? "text-gray-500"
+                                  : "text-gray-400"
+                            }`}
+                          >
+                            {formatListTime(u.lastMessage.createdAt)}
                           </span>
-                        ) : u.lastSeen ? (
-                          `Last seen ${new Date(u.lastSeen).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}`
-                        ) : (
-                          "Offline"
                         )}
-                      </p>
+                      </div>
+
+                      {/* Row 2: preview + unread badge (aligned with preview line) */}
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        {u.lastMessage ? (
+                          <p className="text-xs text-gray-400 truncate leading-tight flex-1">
+                            {u.lastMessage.isMine && (
+                              <span className="text-gray-500 font-medium">You: </span>
+                            )}
+                            {u.lastMessage.hasAttachment
+                              ? "📄 Attachment"
+                              : u.lastMessage.content}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-400 truncate leading-tight flex-1">
+                            {u.isOnline ? (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                Online
+                              </span>
+                            ) : u.lastSeen ? (
+                              `Last seen ${new Date(u.lastSeen).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}`
+                            ) : (
+                              "Offline"
+                            )}
+                          </p>
+                        )}
+
+                        {u.unreadCount > 0 && (
+                          <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold shrink-0">
+                            {u.unreadCount > 99 ? "99+" : u.unreadCount}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
               })}
           </div>
 
-          {/* SIDEBAR FOOTER (Profile Section with Settings Button) */}
+          {/* SIDEBAR FOOTER (Profile Section with Settings Button) — desktop only */}
           <div
-            className={`border-t p-3 shrink-0 shadow-xs transition-colors duration-200 ${
+            className={`border-t p-3 shrink-0 shadow-xs transition-colors duration-200 hidden lg:block ${
               darkMode ? "border-[#222e35] bg-[#111b21]" : "border-gray-200/80 bg-white"
             }`}
           >
@@ -830,10 +1113,10 @@ export default function Chat() {
                 title="View Profile / Settings"
               >
                 <div className="relative shrink-0">
-                  <img
-                    src={user.user.profilePic || "/default.png"}
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-500/20 group-hover:ring-emerald-500 transition"
-                    alt={user.user.name}
+                  <Avatar
+                    src={user.user.profilePic}
+                    name={user.user.name}
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-500/20 group-hover:ring-emerald-500 transition text-lg"
                   />
                   <span
                     className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 ${
@@ -873,6 +1156,40 @@ export default function Chat() {
               </button>
             </div>
           </div>
+
+          {/* MOBILE BOTTOM TAB BAR (Chats / Settings) — WhatsApp style */}
+          <div
+            className={`lg:hidden border-t flex items-stretch shrink-0 transition-colors duration-200 ${
+              darkMode ? "border-[#222e35] bg-[#111b21]" : "border-gray-200/80 bg-white"
+            }`}
+          >
+            <button
+              onClick={() => setShowProfileSidebar(false)}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors cursor-pointer ${
+                !showProfileSidebar
+                  ? darkMode
+                    ? "text-emerald-400"
+                    : "text-emerald-600"
+                  : "text-gray-400"
+              }`}
+            >
+              <FiMessageCircle className="text-xl" />
+              <span>Chats</span>
+            </button>
+            <button
+              onClick={() => setShowProfileSidebar(true)}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors cursor-pointer ${
+                showProfileSidebar
+                  ? darkMode
+                    ? "text-emerald-400"
+                    : "text-emerald-600"
+                  : "text-gray-400"
+              }`}
+            >
+              <FiSettings className="text-xl" />
+              <span>Settings</span>
+            </button>
+          </div>
         </div>
 
         {/* WHATSAPP-STYLE PROFILE PANEL (SLIDE DRAWER) */}
@@ -881,7 +1198,7 @@ export default function Chat() {
             darkMode ? "bg-[#111b21] text-[#e9edef]" : "bg-white text-gray-800"
           } ${
             showProfileSidebar
-              ? "translate-x-0"
+              ? "translate-x-0 max-lg:animate-slide-in-up"
               : "-translate-x-full pointer-events-none"
           }`}
         >
@@ -921,10 +1238,10 @@ export default function Chat() {
               onClick={handleImageClick}
               className="relative group cursor-pointer my-3"
             >
-              <img
-                src={user.user.profilePic || "/default.png"}
-                className="w-36 h-36 rounded-full object-cover shadow-md ring-4 ring-emerald-500/20"
-                alt={user.user.name}
+              <Avatar
+                src={user.user.profilePic}
+                name={user.user.name}
+                className="w-36 h-36 rounded-full object-cover shadow-md ring-4 ring-emerald-500/20 text-5xl"
               />
               <div
                 className={`absolute inset-0 bg-black/45 rounded-full flex flex-col items-center justify-center text-white ${
@@ -1206,28 +1523,74 @@ export default function Chat() {
 
       {/* CHAT MAIN CONTAINER */}
       <div
-        className={`flex-1 flex flex-col h-full relative overflow-hidden transition-colors duration-200 ${
+        onDragOver={handleGlobalDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleFileDrop}
+        className={`flex-1 flex flex-col h-full relative overflow-hidden transition-colors duration-200
+          max-lg:absolute max-lg:inset-0 max-lg:z-30 max-lg:transition-transform max-lg:duration-300 max-lg:animate-slide-in-right ${
+          mobileShowChat
+            ? "max-lg:translate-x-0"
+            : "max-lg:translate-x-full max-lg:pointer-events-none"
+        } ${
           darkMode ? "bg-[#0b141a]" : "bg-[#f9fafb]"
         }`}
       >
         {selectedUser ? (
           <>
+            {/* FILE DRAG & DROP OVERLAY (Karyah Style) */}
+            {isDraggingFile && (
+              <div className="absolute inset-0 z-[100] bg-white/30 dark:bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center border-2 border-dashed border-emerald-500 m-2 rounded-xl pointer-events-none animate-fadeIn">
+                <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4">
+                  <FiPaperclip className="w-10 h-10 text-emerald-500 animate-bounce" />
+                </div>
+                <h3
+                  className={`text-xl font-bold ${
+                    darkMode ? "text-gray-100" : "text-gray-800"
+                  }`}
+                >
+                  Drop files here
+                </h3>
+                <p className="text-gray-500 text-xs mt-1">
+                  Upload images, pdfs, and documents
+                </p>
+              </div>
+            )}
+
             {/* CHAT HEADER */}
             <div
-              className={`h-16 px-6 border-b flex items-center justify-between shrink-0 shadow-2xs z-20 transition-colors duration-200 ${
+              className={`h-14 sm:h-16 px-3 sm:px-6 border-b flex items-center justify-between shrink-0 shadow-2xs z-20 transition-colors duration-200 ${
                 darkMode ? "bg-[#202c33] border-[#222e35]" : "bg-white border-gray-200/80"
               }`}
             >
-              <div className="flex items-center gap-3">
-                {/* User Info */}
-                <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+                {/* BACK ARROW (mobile/tablet only — returns to chat list) */}
+                <button
+                  onClick={() => setMobileShowChat(false)}
+                  className={`lg:hidden p-2 -ml-1 rounded-full transition cursor-pointer shrink-0 ${
+                    darkMode
+                      ? "text-gray-300 hover:bg-[#2a3942]"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                  title="Back to chats"
+                >
+                  <FiArrowLeft className="text-xl" />
+                </button>
+
+                {/* User Info — collapsed on mobile only while search is open;
+                    tablet keeps it visible */}
+                <div
+                  className={`flex items-center gap-2.5 min-w-0 ${
+                    isSearching ? "max-sm:hidden" : ""
+                  }`}
+                >
                   <div className="relative">
-                    <img
-                      src={selectedUser.profilePic || "/default.png"}
+                    <Avatar
+                      src={selectedUser.profilePic}
+                      name={selectedUser.name}
                       className={`w-9 h-9 rounded-full object-cover ring-1 ${
                         darkMode ? "ring-[#2a3942]" : "ring-gray-200"
-                      }`}
-                      alt={selectedUser.name}
+                      } text-base`}
                     />
                     <span
                       className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border ${
@@ -1262,7 +1625,11 @@ export default function Chat() {
               </div>
 
               {/* Search Icon / Search Input on Right Corner */}
-              <div className="flex items-center gap-2">
+              <div
+                className={`flex items-center gap-2 min-w-0 ${
+                  isSearching ? "max-sm:flex-1" : ""
+                }`}
+              >
                 {isSearching ? (
                   <div
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-full border animate-fadeIn transition-all ${
@@ -1291,7 +1658,7 @@ export default function Chat() {
                         }
                       }}
                       placeholder="Search messages..."
-                      className={`bg-transparent border-none text-xs focus:outline-none w-36 sm:w-52 ${
+                      className={`bg-transparent border-none text-xs focus:outline-none max-sm:w-full sm:w-52 lg:w-36 min-w-0 ${
                         darkMode
                           ? "text-[#e9edef] placeholder-gray-500"
                           : "text-gray-800 placeholder-gray-400"
@@ -1354,17 +1721,82 @@ export default function Chat() {
                     </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => setIsSearching(true)}
-                    className={`p-2 rounded-full transition cursor-pointer ${
-                      darkMode
-                        ? "text-gray-400 hover:text-emerald-400 hover:bg-[#202c33]"
-                        : "text-gray-500 hover:text-emerald-600 hover:bg-gray-100"
-                    }`}
-                    title="Search messages"
-                  >
-                    <FiSearch className="text-lg" />
-                  </button>
+                  <div className="relative chat-header-menu">
+                    <button
+                      onClick={() => setShowChatMenu((prev) => !prev)}
+                      className={`p-2 rounded-full transition cursor-pointer ${
+                        darkMode
+                          ? "text-gray-400 hover:text-emerald-400 hover:bg-[#202c33]"
+                          : "text-gray-500 hover:text-emerald-600 hover:bg-gray-100"
+                      }`}
+                      title="Chat options"
+                    >
+                      <FiMoreVertical className="text-lg" />
+                    </button>
+
+                    {showChatMenu && (
+                      <div
+                        className={`absolute top-full mt-1.5 right-0 z-40 w-48 rounded-xl shadow-xl border py-1.5 text-xs animate-fadeIn ${
+                          darkMode
+                            ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
+                            : "bg-white border-gray-100 text-gray-700 shadow-lg"
+                        }`}
+                      >
+                        {/* Search Messages */}
+                        <button
+                          onClick={() => {
+                            setShowChatMenu(false);
+                            setIsSearching(true);
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 font-medium transition cursor-pointer ${
+                            darkMode
+                              ? "hover:bg-[#111b21] text-[#e9edef]"
+                              : "hover:bg-gray-50 text-gray-700"
+                          }`}
+                        >
+                          <FiSearch
+                            className={`text-sm ${
+                              darkMode ? "text-gray-400" : "text-gray-500"
+                            }`}
+                          />
+                          <span>Search messages</span>
+                        </button>
+
+                        {/* Clear Chat (for this user only) */}
+                        <button
+                          onClick={() => {
+                            setShowChatMenu(false);
+                            setShowClearChatConfirm(true);
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 font-medium transition cursor-pointer ${
+                            darkMode
+                              ? "hover:bg-red-950/30 text-red-400"
+                              : "hover:bg-red-50 text-red-600"
+                          }`}
+                        >
+                          <FiTrash2 className="text-sm" />
+                          <span>Clear chat</span>
+                        </button>
+
+                        {/* Close Chat */}
+                        <button
+                          onClick={handleCloseChat}
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 font-medium transition cursor-pointer ${
+                            darkMode
+                              ? "hover:bg-[#111b21] text-[#e9edef]"
+                              : "hover:bg-gray-50 text-gray-700"
+                          }`}
+                        >
+                          <FiX
+                            className={`text-sm ${
+                              darkMode ? "text-gray-400" : "text-gray-500"
+                            }`}
+                          />
+                          <span>Close chat</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -1452,7 +1884,7 @@ export default function Chat() {
             <div
               ref={messagesContainerRef}
               onScroll={handleScroll}
-              className="flex-1 overflow-y-auto px-6 py-4 space-y-4 relative"
+              className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-4 relative"
             >
               {Object.keys(groupedMessages).length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 text-sm">
@@ -1491,16 +1923,16 @@ export default function Chat() {
                         <div
                           key={m._id}
                           id={`msg-${m._id}`}
-                          className={`flex items-end gap-2 group transition-all duration-300 ${
+                          className={`flex items-start gap-2 group transition-all duration-300 ${
                             isSelf ? "justify-end" : "justify-start"
                           } ${isHighlighted ? "highlight-pulse" : ""}`}
                         >
                           {/* Partner Avatar for received messages */}
                           {!isSelf && (
-                            <img
-                              src={m.sender.profilePic || "/default.png"}
-                              className="w-8 h-8 rounded-full object-cover mb-1 shrink-0 shadow-2xs"
-                              alt={m.sender.name}
+                            <Avatar
+                              src={m.sender.profilePic}
+                              name={m.sender.name}
+                              className="w-8 h-8 rounded-full object-cover shadow-2xs text-sm"
                             />
                           )}
 
@@ -1566,11 +1998,14 @@ export default function Chat() {
                                 )}
 
                                 {/* Hover icons on top right: Pin + 3 dots menu */}
-                                <div className="ml-auto flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                                {/* NOTE: opacity must stay on the icon buttons, NOT on this container —
+                                    an opacity < 1 creates a stacking context that traps the dropdown's
+                                    z-index, letting later message bubbles paint over the open menu. */}
+                                <div className="ml-auto flex items-center gap-1">
                                   {/* Pin indicator or button */}
                                   <button
                                     onClick={() => handleTogglePin(m)}
-                                    className={`p-1 rounded hover:bg-black/5 transition ${
+                                    className={`p-1 rounded hover:bg-black/5 transition opacity-70 group-hover:opacity-100 ${
                                       m.isPinned
                                         ? "text-amber-500"
                                         : "text-gray-400 hover:text-gray-700"
@@ -1594,7 +2029,7 @@ export default function Chat() {
                                       onClick={(e) =>
                                         handleToggleMenu(e, m._id)
                                       }
-                                      className="p-1 text-gray-400 hover:text-gray-700 rounded hover:bg-black/5 transition"
+                                      className="p-1 text-gray-400 hover:text-gray-700 rounded hover:bg-black/5 transition opacity-70 group-hover:opacity-100"
                                       title="Message actions"
                                     >
                                       <FiMoreVertical className="text-xs" />
@@ -1603,7 +2038,7 @@ export default function Chat() {
                                     {/* Action Dropdown Menu (Karyah Style) */}
                                     {isMenuOpen && (
                                       <div
-                                        className={`absolute z-40 ${
+                                        className={`absolute z-50 ${
                                           menuPlacement === "up"
                                             ? "bottom-full mb-1"
                                             : "top-full mt-1"
@@ -1717,27 +2152,91 @@ export default function Chat() {
                               {m.isDeleted ? (
                                 <span className="italic text-gray-400 text-xs flex items-center gap-1.5 py-1">
                                   This message was deleted
-                                </span>
+                                  </span>
                               ) : m.fileUrl ? (
                                 <div className="py-1">
-                                  <a
-                                    href={m.fileUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className={`flex items-center gap-2 p-2 rounded-lg transition font-medium text-xs underline ${
-                                      darkMode
-                                        ? "bg-black/20 hover:bg-black/30 text-emerald-400"
-                                        : "bg-black/5 hover:bg-black/10 text-emerald-800"
-                                    }`}
-                                  >
-                                    <span className="text-base">📄</span>
-                                    <span>Download Attached File</span>
-                                  </a>
+                                  {(() => {
+                                    const info = getAttachmentInfo(m.fileUrl);
+                                    return info.isImage ? (
+                                      /* Images: click to open preview modal */
+                                      <img
+                                        src={m.fileUrl}
+                                        alt={info.name}
+                                        onClick={() =>
+                                          setPreviewFile({ url: m.fileUrl })
+                                        }
+                                        className="max-w-[240px] max-h-[240px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition"
+                                      />
+                                    ) : (
+                                      /* Docs: Karyah-style card with preview & download */
+                                      <div
+                                        className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition max-w-[260px] ${
+                                          darkMode
+                                            ? "bg-black/20 border-[#2a3942]"
+                                            : "bg-black/[0.03] border-gray-200/80"
+                                        }`}
+                                      >
+                                        <div
+                                          className="w-9 h-9 rounded-lg flex items-center justify-center text-[9px] font-bold shrink-0"
+                                          style={{
+                                            background: `${info.color}18`,
+                                            color: info.color,
+                                          }}
+                                        >
+                                          {info.type.toUpperCase()}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p
+                                            className={`text-xs font-medium truncate leading-tight ${
+                                              darkMode ? "text-gray-100" : "text-gray-800"
+                                            }`}
+                                            title={info.name}
+                                          >
+                                            {info.name}
+                                          </p>
+                                          <p className="text-[10px] text-gray-400 leading-tight mt-0.5">
+                                            {info.label}
+                                          </p>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          <button
+                                            onClick={() =>
+                                              setPreviewFile({ url: m.fileUrl })
+                                            }
+                                            className={`w-7 h-7 flex items-center justify-center rounded-lg transition cursor-pointer ${
+                                              darkMode
+                                                ? "bg-white/5 hover:bg-white/10 text-gray-300"
+                                                : "bg-gray-100 hover:bg-gray-200 text-gray-500"
+                                            }`}
+                                            title="Preview"
+                                          >
+                                            <FiEye size={13} />
+                                          </button>
+                                          {/* Hide download for own sent files */}
+                                          {!isSelf && (
+                                            <button
+                                              onClick={() =>
+                                                handleDownloadAttachment(m.fileUrl)
+                                              }
+                                              className={`w-7 h-7 flex items-center justify-center rounded-lg transition cursor-pointer ${
+                                                darkMode
+                                                  ? "bg-white/5 hover:bg-white/10 text-gray-300"
+                                                  : "bg-gray-100 hover:bg-gray-200 text-gray-500"
+                                              }`}
+                                              title="Download"
+                                            ><FiDownload size={13} />
+                                            </button>
+                                          )}
+                                        </div>
+</div>
+                                    )
+                                  })()}
                                   {m.content && (
                                     <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">
-                                      {renderMessageContent(m.content)}
+                                      {renderMessageContent(m.content)
+                                      }
                                     </p>
-                                  )}
+                                    )}
                                 </div>
                               ) : (
                                 <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
@@ -1766,7 +2265,9 @@ export default function Chat() {
                                   {/* Floating Quick Reaction Bar */}
                                   {isReactionOpen && (
                                     <div
-                                      className={`absolute bottom-6 left-0 z-30 flex items-center gap-1 px-2.5 py-1.5 rounded-full shadow-lg border animate-fadeIn ${
+                                      className={`absolute bottom-6 z-50 flex items-center gap-1 px-2.5 py-1.5 rounded-full shadow-lg border animate-fadeIn whitespace-nowrap ${
+                                        isSelf ? "right-0" : "left-0"
+                                      } ${
                                         darkMode
                                           ? "bg-[#202c33] border-[#2a3942]"
                                           : "bg-white border-gray-200/90 shadow-md"
@@ -1988,6 +2489,33 @@ export default function Chat() {
               </div>
             )}
 
+            {/* DOCUMENT PREVIEW MODAL */}
+            {previewFile && (
+              <DocumentPreviewModal
+                url={previewFile.url}
+                darkMode={darkMode}
+                onClose={() => setPreviewFile(null)}
+                /**
+                 * Resolve a stored url into something the browser can open:
+                 * - relative /api/... docs -> absolute url to our server (auth handled by caller)
+                 * - cloudinary urls -> fetched as blob (bypasses restricted-type 401)
+                 */
+                getFileUrl={async (u) => {
+                  if (u?.startsWith("/")) {
+                    // Local doc — add token as query param so <iframe>/<img> can load it
+                    return `${backendUrl}${u}?token=${user.token}`;
+                  }
+                  try {
+                    const res = await fetch(u);
+                    if (!res.ok) throw new Error(String(res.status));
+                    return URL.createObjectURL(await res.blob());
+                  } catch {
+                    return u;
+                  }
+                }}
+              />
+            )}
+
             {/* FLOATING SCROLL DOWN BUTTON */}
             {showScrollBottom && (
               <button
@@ -2011,7 +2539,7 @@ export default function Chat() {
 
             {/* KARYAH-STYLE INPUT BAR */}
             <div
-              className={`p-4 border-t shrink-0 transition-colors duration-200 ${
+              className={`p-2.5 sm:p-4 border-t shrink-0 transition-colors duration-200 ${
                 darkMode ? "bg-[#202c33] border-[#222e35]" : "bg-white border-gray-200/80"
               }`}
             >
@@ -2056,25 +2584,11 @@ export default function Chat() {
                   type="file"
                   ref={chatFileRef}
                   className="hidden"
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     const file = e.target.files[0];
                     if (!file) return;
-
-                    const formData = new FormData();
-                    formData.append("file", file);
-
-                    try {
-                      toast.info("Uploading file...");
-                      const { data } = await axios.post("/upload", formData, {
-                        headers: {
-                          Authorization: `Bearer ${user.token}`,
-                          "Content-Type": "multipart/form-data",
-                        },
-                      });
-                      sendMessage(data.url);
-                    } catch {
-                      toast.error("File upload failed");
-                    }
+                    uploadFile(file);
+                    if (e.target) e.target.value = "";
                   }}
                 />
 
@@ -2283,6 +2797,67 @@ export default function Chat() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CLEAR CHAT CONFIRMATION MODAL */}
+      {showClearChatConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
+          <div
+            className={`rounded-2xl shadow-2xl border w-full max-w-sm p-6 space-y-4 transition-colors ${
+              darkMode
+                ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
+                : "bg-white border-gray-200/80 text-gray-800 shadow-2xl"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 ${
+                  darkMode
+                    ? "bg-red-950/50 text-red-400"
+                    : "bg-red-50 text-red-500"
+                }`}
+              >
+                <FiTrash2 />
+              </div>
+              <div>
+                <h3
+                  className={`font-semibold text-base ${
+                    darkMode ? "text-gray-100" : "text-gray-800"
+                  }`}
+                >
+                  Clear chat?
+                </h3>
+                <p
+                  className={`text-xs mt-0.5 ${
+                    darkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  All messages in this chat will be deleted for you only. The
+                  other person can still see them.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setShowClearChatConfirm(false)}
+                className={`px-4 py-2 text-xs font-medium rounded-lg transition cursor-pointer ${
+                  darkMode
+                    ? "text-gray-300 hover:bg-[#2a3942]"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearChat}
+                className="px-4 py-2 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition shadow-xs cursor-pointer"
+              >
+                Clear Chat
+              </button>
+            </div>
           </div>
         </div>
       )}

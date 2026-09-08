@@ -2,6 +2,7 @@ import { useContext, useState, useRef } from "react";
 import axios from "../utils/axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
+import Avatar from "../components/Avatar";
 
 export default function Profile() {
   const { user, setUser } = useContext(AuthContext);
@@ -87,9 +88,10 @@ export default function Profile() {
 
         {/* PROFILE IMAGE */}
         <div className="flex flex-col items-center mb-8">
-          <img
-            src={user.user.profilePic || "/default.png"}
-            className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-lg hover:scale-105 transition duration-300"
+          <Avatar
+            src={user.user.profilePic}
+            name={user.user.name}
+            className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-lg hover:scale-105 transition duration-300 text-4xl"
           />
 
           <button
