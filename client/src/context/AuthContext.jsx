@@ -1,16 +1,14 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState } from "react";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
+  // Read from localStorage synchronously so the user is available on the
+  // very first render (avoids redirecting to /login on page refresh).
+  const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
 
   const logout = () => {
     localStorage.removeItem("user");
