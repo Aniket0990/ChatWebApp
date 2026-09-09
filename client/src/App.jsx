@@ -3,10 +3,10 @@ import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Chat from "./pages/Chat";
+import Chat from "./components/Chat";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Profile from "./pages/Profile";
+import Profile from "./components/Profile";
 
 function App() {
   const { user } = useContext(AuthContext);
@@ -25,7 +25,10 @@ function App() {
           path="/chat"
           element={user ? <Chat /> : <Navigate to="/login" />}
         />
-        <Route path="/profile" element={<Navigate to="/chat" />} />
+        <Route
+          path="/profile"
+          element={user ? <Profile /> : <Navigate to="/login" />}
+        />
       </Routes>
       <ToastContainer position="top-right" autoClose={2000} />
     </>

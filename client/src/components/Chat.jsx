@@ -1,12 +1,20 @@
-import { useEffect, useState, useContext, useRef, useMemo } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useContext,
+  useRef,
+  useMemo,
+} from "react";
 import axios from "../utils/axios";
 import { socket } from "../socket/socket";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import EmojiPicker from "emoji-picker-react";
-import Avatar from "../components/Avatar";
-import DocumentPreviewModal from "../components/DocumentPreviewModal";
+import Avatar from "./Avatar";
+import DocumentPreviewModal from "./DocumentPreviewModal";
+import Sidebar from "./Sidebar";
 import {
   FiSend,
   FiPaperclip,
@@ -18,20 +26,14 @@ import {
   FiTrash2,
   FiChevronDown,
   FiChevronUp,
-  FiRefreshCw,
   FiSearch,
   FiArrowLeft,
-  FiMessageCircle,
-  FiCamera,
-  FiLock,
-  FiLogOut,
   FiCheck,
-  FiSettings,
   FiEye,
   FiDownload,
 } from "react-icons/fi";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
-import { IoCheckmark, IoCheckmarkDone, IoMoon, IoSunny } from "react-icons/io5";
+import { IoCheckmark, IoCheckmarkDone } from "react-icons/io5";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
@@ -46,8 +48,7 @@ export default function Chat() {
   const [typing, setTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // User search in sidebar & Dark Mode state
-  const [userSearchQuery, setUserSearchQuery] = useState("");
+  // Dark Mode state
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("theme") === "dark";
   });
@@ -68,25 +69,6 @@ export default function Chat() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMatchIndex, setSearchMatchIndex] = useState(0);
-
-  // WhatsApp-style Profile Sidebar & Password modal states
-  const [showProfileSidebar, setShowProfileSidebar] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState("");
-  const [editingAbout, setEditingAbout] = useState(false);
-  const [aboutInput, setAboutInput] = useState("");
-
-  // Change Password Modal
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [passwordSuccess, setPasswordSuccess] = useState("");
-
-  // Logout Confirmation Modal
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Chat header menu & Clear Chat confirmation modal
   const [showChatMenu, setShowChatMenu] = useState(false);
@@ -113,12 +95,36 @@ export default function Chat() {
   const navigate = useNavigate();
   const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const profileInputRef = useRef(null);
   const chatFileRef = useRef(null);
   const messageInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
 
   const quickReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+  // Helper to update sidebar lastMessage for a target user given an updated list of messages
+  const updateLastMessageFromList = (targetUserId, messageList) => {
+    if (!targetUserId) return;
+    const nonDeleted = messageList.filter((m) => !m.isDeleted);
+    const last = nonDeleted[nonDeleted.length - 1];
+    setUsers((prev) =>
+      prev.map((u) =>
+        u._id === targetUserId
+          ? {
+              ...u,
+              lastMessage: last
+                ? {
+                    content: last.content,
+                    hasAttachment: Boolean(last.fileUrl),
+                    isMine:
+                      (last.sender?._id || last.sender) === user?.user?._id,
+                    createdAt: last.createdAt,
+                  }
+                : null,
+            }
+          : u,
+      ),
+    );
+  };
 
   // SOCKET SETUP
   useEffect(() => {
@@ -130,27 +136,30 @@ export default function Chat() {
   // SOCKET LISTENERS
   useEffect(() => {
     socket.on("message received", (msg) => {
-      if (currentChat && msg.chat._id === currentChat._id) {
+      const senderId = msg.sender?._id || msg.sender;
+      const chatId = msg.chat?._id || msg.chat;
+
+      if (currentChat && chatId === currentChat._id) {
         setMessages((prev) => [...prev, msg]);
 
-        if (msg.sender._id !== user.user._id) {
+        if (senderId !== user?.user?._id) {
           socket.emit("message delivered", {
             messageId: msg._id,
-            chatId: msg.chat._id,
+            chatId: chatId,
           });
           socket.emit("message seen", {
             messageId: msg._id,
-            chatId: msg.chat._id,
+            chatId: chatId,
           });
         }
       }
 
-      // Update the sidebar preview/badge for this sender
-      if (msg.sender._id !== user.user._id) {
-        const isActiveChat = currentChat && msg.chat._id === currentChat._id;
+      // Update the sidebar preview/badge for this sender in real time
+      if (senderId !== user?.user?._id) {
+        const isActiveChat = currentChat && chatId === currentChat._id;
         setUsers((prev) =>
           prev.map((u) =>
-            u._id === msg.sender._id
+            u._id === senderId
               ? {
                   ...u,
                   lastMessage: {
@@ -195,17 +204,43 @@ export default function Chat() {
       setMessages((prev) =>
         prev.map((m) => (m._id === updatedMsg._id ? updatedMsg : m)),
       );
+      const senderId = updatedMsg.sender?._id || updatedMsg.sender;
+      const isMine = senderId === user?.user?._id;
+      setUsers((prev) =>
+        prev.map((u) => {
+          const isTarget = isMine
+            ? u._id === selectedUser?._id
+            : u._id === senderId;
+          if (isTarget && u.lastMessage) {
+            return {
+              ...u,
+              lastMessage: {
+                ...u.lastMessage,
+                content: updatedMsg.content,
+                hasAttachment: Boolean(updatedMsg.fileUrl),
+              },
+            };
+          }
+          return u;
+        }),
+      );
     });
 
-    socket.on("message deleted", ({ messageId, isDeletedForEveryone, updatedMsg }) => {
-      if (isDeletedForEveryone && updatedMsg) {
-        setMessages((prev) =>
-          prev.map((m) => (m._id === messageId ? updatedMsg : m)),
-        );
-      } else {
-        setMessages((prev) => prev.filter((m) => m._id !== messageId));
-      }
-    });
+    socket.on(
+      "message deleted",
+      ({ messageId, isDeletedForEveryone, updatedMsg }) => {
+        setMessages((prev) => {
+          const next =
+            isDeletedForEveryone && updatedMsg
+              ? prev.map((m) => (m._id === messageId ? updatedMsg : m))
+              : prev.filter((m) => m._id !== messageId);
+          if (selectedUser?._id) {
+            updateLastMessageFromList(selectedUser._id, next);
+          }
+          return next;
+        });
+      },
+    );
 
     socket.on("message pinned", (updatedMsg) => {
       setMessages((prev) =>
@@ -246,12 +281,21 @@ export default function Chat() {
     };
   }, [currentChat, user]);
 
-  // AUTO SCROLL
-  useEffect(() => {
-    if (!highlightedId) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // AUTO SCROLL (Directly show latest message without scrolling animation)
+  useLayoutEffect(() => {
+    if (!highlightedId && messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight;
+
+      const raf = requestAnimationFrame(() => {
+        if (messagesContainerRef.current && !highlightedId) {
+          messagesContainerRef.current.scrollTop =
+            messagesContainerRef.current.scrollHeight;
+        }
+      });
+      return () => cancelAnimationFrame(raf);
     }
-  }, [messages]);
+  }, [messages, currentChat, highlightedId]);
 
   // CLOSE MENUS ON OUTSIDE CLICK
   useEffect(() => {
@@ -319,19 +363,46 @@ export default function Chat() {
 
       setMessages(messagesRes.data);
 
-      // Mark unread messages as seen + clear sidebar badge for this user
+      // Mark unread messages as seen + clear sidebar badge for this user + sync lastMessage
       let hasUnseen = false;
+      const nonDeleted = messagesRes.data.filter((m) => !m.isDeleted);
+      const last = nonDeleted[nonDeleted.length - 1];
+
       messagesRes.data.forEach((msg) => {
-        if (msg.status !== "seen" && msg.sender._id !== user.user._id) {
+        if (
+          msg.status !== "seen" &&
+          (msg.sender?._id || msg.sender) !== user?.user?._id
+        ) {
           hasUnseen = true;
-          socket.emit("message seen", { messageId: msg._id, chatId: data._id });
+          socket.emit("message seen", {
+            messageId: msg._id,
+            chatId: data._id,
+          });
         }
       });
-      if (hasUnseen) {
-        setUsers((prev) =>
-          prev.map((x) => (x._id === u._id ? { ...x, unreadCount: 0 } : x)),
-        );
-      }
+
+      setUsers((prev) =>
+        prev.map((x) =>
+          x._id === u._id
+            ? {
+                ...x,
+                unreadCount: 0,
+                ...(last
+                  ? {
+                      lastMessage: {
+                        content: last.content,
+                        hasAttachment: Boolean(last.fileUrl),
+                        isMine:
+                          (last.sender?._id || last.sender) ===
+                          user?.user?._id,
+                        createdAt: last.createdAt,
+                      },
+                    }
+                  : {}),
+              }
+            : x,
+        ),
+      );
     } catch (err) {
       toast.error("Failed to load chat");
     }
@@ -360,6 +431,25 @@ export default function Chat() {
         socket.emit("message edited", data);
         setEditingMessage(null);
         setMessage("");
+
+        // Update sidebar preview in real time if editing message
+        if (selectedUser?._id) {
+          setUsers((prev) =>
+            prev.map((u) => {
+              if (u._id === selectedUser._id && u.lastMessage) {
+                return {
+                  ...u,
+                  lastMessage: {
+                    ...u.lastMessage,
+                    content: data.content,
+                    hasAttachment: Boolean(data.fileUrl),
+                  },
+                };
+              }
+              return u;
+            }),
+          );
+        }
       } catch (err) {
         console.error("Failed to edit message", err);
       }
@@ -385,6 +475,25 @@ export default function Chat() {
       setMessages((prev) => [...prev, data]);
       setMessage("");
       setReplyingTo(null);
+
+      // Update sidebar preview for this user in real time
+      if (selectedUser?._id) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u._id === selectedUser._id
+              ? {
+                  ...u,
+                  lastMessage: {
+                    content: data.content,
+                    hasAttachment: Boolean(data.fileUrl),
+                    isMine: true,
+                    createdAt: data.createdAt,
+                  },
+                }
+              : u,
+          ),
+        );
+      }
     } catch (err) {
       toast.error("Failed to send message");
     }
@@ -492,9 +601,13 @@ export default function Chat() {
       });
 
       if (mode === "everyone") {
-        setMessages((prev) =>
-          prev.map((m) => (m._id === msg._id ? data.data : m)),
-        );
+        setMessages((prev) => {
+          const next = prev.map((m) => (m._id === msg._id ? data.data : m));
+          if (selectedUser?._id) {
+            updateLastMessageFromList(selectedUser._id, next);
+          }
+          return next;
+        });
         socket.emit("message deleted", {
           messageId: msg._id,
           chatId: currentChat._id,
@@ -502,7 +615,13 @@ export default function Chat() {
           updatedMsg: data.data,
         });
       } else {
-        setMessages((prev) => prev.filter((m) => m._id !== msg._id));
+        setMessages((prev) => {
+          const next = prev.filter((m) => m._id !== msg._id);
+          if (selectedUser?._id) {
+            updateLastMessageFromList(selectedUser._id, next);
+          }
+          return next;
+        });
       }
     } catch (err) {
       console.error("Failed to delete message", err);
@@ -586,133 +705,7 @@ export default function Chat() {
       ? pinnedMessages[pinnedIndex % pinnedMessages.length]
       : null;
 
-  // PROFILE UPLOAD
-  const handleImageClick = () => {
-    if (profileInputRef.current) {
-      profileInputRef.current.click();
-    }
-  };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      setUploadingPhoto(true);
-      const { data } = await axios.post("/upload", formData, {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      const res = await axios.put(
-        "/auth/update-profile",
-        { profilePic: data.url },
-        { headers: { Authorization: `Bearer ${user.token}` } },
-      );
-
-      const updatedUser = {
-        ...user,
-        user: res.data,
-      };
-      setUser(updatedUser);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-    } catch (err) {
-      console.error("Upload failed", err);
-    } finally {
-      setUploadingPhoto(false);
-      if (e.target) e.target.value = "";
-    }
-  };
-
-  // UPDATE NAME HANDLER
-  const handleSaveName = async () => {
-    if (!nameInput.trim()) return;
-    try {
-      const { data } = await axios.put(
-        "/auth/update-profile",
-        { name: nameInput.trim() },
-        { headers: { Authorization: `Bearer ${user.token}` } },
-      );
-
-      const updatedUser = { ...user, user: { ...user.user, name: data.name } };
-      setUser(updatedUser);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      setEditingName(false);
-    } catch (err) {
-      console.error("Failed to update name", err);
-    }
-  };
-
-  // UPDATE ABOUT HANDLER
-  const handleSaveAbout = async () => {
-    if (!aboutInput.trim()) return;
-    try {
-      const { data } = await axios.put(
-        "/auth/update-profile",
-        { about: aboutInput.trim() },
-        { headers: { Authorization: `Bearer ${user.token}` } },
-      );
-
-      const updatedUser = { ...user, user: { ...user.user, about: data.about } };
-      setUser(updatedUser);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      setEditingAbout(false);
-    } catch (err) {
-      console.error("Failed to update about", err);
-    }
-  };
-
-  // CHANGE PASSWORD HANDLER
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    setPasswordError("");
-    setPasswordSuccess("");
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError("New passwords do not match");
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
-      return;
-    }
-
-    try {
-      await axios.put(
-        "/auth/change-password",
-        { currentPassword, newPassword },
-        { headers: { Authorization: `Bearer ${user.token}` } },
-      );
-
-      setPasswordSuccess("Password updated successfully!");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setTimeout(() => {
-        setShowPasswordModal(false);
-        setPasswordSuccess("");
-      }, 1500);
-    } catch (err) {
-      setPasswordError(
-        err.response?.data?.message || "Failed to change password",
-      );
-    }
-  };
-
-  // CONFIRM LOGOUT HANDLER
-  const handleConfirmLogout = () => {
-    if (user?.user?._id) {
-      socket.disconnect();
-    }
-    logout();
-    navigate("/login");
-  };
 
   // CLEAR CHAT (for this user only)
   const handleClearChat = async () => {
@@ -723,6 +716,15 @@ export default function Chat() {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setMessages([]);
+      if (selectedUser?._id) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u._id === selectedUser._id
+              ? { ...u, lastMessage: null, unreadCount: 0 }
+              : u,
+          ),
+        );
+      }
       toast.success("Chat cleared");
     } catch (err) {
       toast.error("Failed to clear chat");
@@ -873,22 +875,6 @@ export default function Chat() {
     scrollToMessage(matchingMessages[nextIdx]._id);
   };
 
-  // DATE HELPERS
-  // Sidebar list time: today -> HH:MM, yesterday -> "Yesterday", else date
-  const formatListTime = (dateString) => {
-    if (!dateString) return "";
-    const d = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-
-    if (d.toDateString() === today.toDateString()) {
-      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    }
-    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-    return d.toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", year: "numeric" });
-  };
-
   const formatMessageDate = (dateString) => {
     if (!dateString) return "";
     const msgDate = new Date(dateString);
@@ -924,602 +910,14 @@ export default function Chat() {
       }`}
     >
       {/* SIDEBAR */}
-      <div
-        className={`w-full lg:w-96 border-r flex flex-col shadow-sm relative overflow-hidden transition-colors duration-200 max-lg:absolute max-lg:inset-0 max-lg:z-40 max-lg:transition-transform max-lg:duration-300 ${
-          mobileShowChat ? "max-lg:-translate-x-full" : ""
-        } ${
-          darkMode ? "bg-[#111b21] border-[#222e35]" : "bg-white border-gray-200"
-        }`}
-      >
-        {/* REGULAR CHAT LIST SIDEBAR */}
-        <div className="flex flex-col h-full w-full">
-          {/* SIDEBAR TOP HEADER */}
-          <div
-            className={`px-5 pt-4 pb-2 flex items-center justify-between shrink-0 transition-colors duration-200 ${
-              darkMode ? "bg-[#111b21]" : "bg-white"
-            }`}
-          >
-            <h1
-              className={`text-xl sm:text-2xl font-bold tracking-tight select-none ${
-                darkMode ? "text-emerald-500" : "text-emerald-600"
-              }`}
-            >
-              Friends Chat App
-            </h1>
-          </div>
-
-          {/* SEARCH BAR (To search user names) */}
-          <div
-            className={`px-4 py-2 shrink-0 border-b transition-colors duration-200 ${
-              darkMode ? "bg-[#111b21] border-[#222e35]" : "bg-white border-gray-100/80"
-            }`}
-          >
-            <div
-              className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl border transition-all shadow-2xs ${
-                darkMode
-                  ? "bg-[#202c33] border-transparent text-[#e9edef] focus-within:bg-[#202c33]"
-                  : "bg-[#f0f2f5] border-transparent text-gray-800 focus-within:border-emerald-500/40 focus-within:bg-white"
-              }`}
-            >
-              <FiSearch className="text-gray-400 text-sm shrink-0" />
-              <input
-                type="text"
-                value={userSearchQuery}
-                onChange={(e) => setUserSearchQuery(e.target.value)}
-                placeholder="Search or start a new chat"
-                className={`w-full bg-transparent text-xs placeholder-gray-400 focus:outline-none ${
-                  darkMode ? "text-[#e9edef]" : "text-gray-800"
-                }`}
-              />
-              {userSearchQuery && (
-                <button
-                  onClick={() => setUserSearchQuery("")}
-                  className={`p-0.5 rounded-full cursor-pointer ${
-                    darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-400 hover:text-gray-600"
-                  }`}
-                >
-                  <FiX className="text-xs" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* DIRECT MESSAGES LIST */}
-          <div
-            className={`flex-1 overflow-y-auto divide-y transition-colors duration-200 ${
-              darkMode ? "bg-[#111b21] divide-[#202c33]" : "bg-white divide-gray-50"
-            }`}
-          >
-            <div className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Direct Messages
-            </div>
-            {users
-              .filter((u) =>
-                u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()),
-              )
-              .map((u) => {
-                const isSelected = selectedUser?._id === u._id;
-                return (
-                  <div
-                    key={u._id}
-                    onClick={() => openChat(u)}
-                    className={`px-4 py-3 flex items-center gap-3.5 cursor-pointer transition-all ${
-                      isSelected
-                        ? darkMode
-                          ? "bg-[#2a3942] border-l-4 border-emerald-500"
-                          : "bg-emerald-50/80 border-l-4 border-emerald-600"
-                        : darkMode
-                          ? "hover:bg-[#202c33]"
-                          : "hover:bg-gray-50/80"
-                    }`}
-                  >
-                    <div className="relative shrink-0">
-                      <Avatar
-                        src={u.profilePic}
-                        name={u.name}
-                        className="w-12 h-12 rounded-full object-cover shadow-2xs text-xl"
-                      />
-                      <span
-                        className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 ${
-                          darkMode ? "border-[#111b21]" : "border-white"
-                        } ${
-                          u.isOnline
-                            ? "bg-emerald-500"
-                            : darkMode ? "bg-gray-600" : "bg-gray-300"
-                        }`}
-                      ></span>
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      {/* Row 1: name + time (time always on this line) */}
-                      <div className="flex items-center justify-between gap-2">
-                        <p
-                          className={`text-sm truncate leading-tight ${
-                            isSelected
-                              ? darkMode ? "text-emerald-400 font-semibold" : "text-emerald-900 font-semibold"
-                              : darkMode ? "text-[#e9edef]" : "text-gray-800"
-                          }`}
-                        >
-                          {u.name}
-                        </p>
-                        {u.lastMessage?.createdAt && (
-                          <span
-                            className={`text-[10px] whitespace-nowrap shrink-0 leading-tight ${
-                              u.unreadCount > 0
-                                ? darkMode
-                                  ? "text-emerald-400 font-semibold"
-                                  : "text-emerald-600 font-semibold"
-                                : darkMode
-                                  ? "text-gray-500"
-                                  : "text-gray-400"
-                            }`}
-                          >
-                            {formatListTime(u.lastMessage.createdAt)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Row 2: preview + unread badge (aligned with preview line) */}
-                      <div className="flex items-center justify-between gap-2 mt-1">
-                        {u.lastMessage ? (
-                          <p className="text-xs text-gray-400 truncate leading-tight flex-1">
-                            {u.lastMessage.isMine && (
-                              <span className="text-gray-500 font-medium">You: </span>
-                            )}
-                            {u.lastMessage.hasAttachment
-                              ? "📄 Attachment"
-                              : u.lastMessage.content}
-                          </p>
-                        ) : (
-                          <p className="text-xs text-gray-400 truncate leading-tight flex-1">
-                            {u.isOnline ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                                Online
-                              </span>
-                            ) : u.lastSeen ? (
-                              `Last seen ${new Date(u.lastSeen).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}`
-                            ) : (
-                              "Offline"
-                            )}
-                          </p>
-                        )}
-
-                        {u.unreadCount > 0 && (
-                          <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold shrink-0">
-                            {u.unreadCount > 99 ? "99+" : u.unreadCount}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-
-          {/* SIDEBAR FOOTER (Profile Section with Settings Button) — desktop only */}
-          <div
-            className={`border-t p-3 shrink-0 shadow-xs transition-colors duration-200 hidden lg:block ${
-              darkMode ? "border-[#222e35] bg-[#111b21]" : "border-gray-200/80 bg-white"
-            }`}
-          >
-            {/* Profile Row: Photo on left, Name & Email next, Setting button on right */}
-            <div className="flex items-center justify-between px-2 py-0.5">
-              <div
-                onClick={() => setShowProfileSidebar(true)}
-                className="flex items-center gap-3 cursor-pointer group min-w-0 flex-1 py-0.5"
-                title="View Profile / Settings"
-              >
-                <div className="relative shrink-0">
-                  <Avatar
-                    src={user.user.profilePic}
-                    name={user.user.name}
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-500/20 group-hover:ring-emerald-500 transition text-lg"
-                  />
-                  <span
-                    className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 ${
-                      darkMode ? "border-[#111b21]" : "border-white"
-                    }`}
-                  ></span>
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <h4
-                    className={`font-semibold text-sm truncate leading-tight transition ${
-                      darkMode
-                        ? "text-[#e9edef] group-hover:text-emerald-400"
-                        : "text-gray-800 group-hover:text-emerald-700"
-                    }`}
-                  >
-                    {user.user.name}
-                  </h4>
-                  <p className="text-[11px] text-gray-400 truncate leading-tight mt-0.5">
-                    {user.user.email}
-                  </p>
-                </div>
-              </div>
-
-              {/* Settings Button (replacing exit button) */}
-              <button
-                type="button"
-                onClick={() => setShowProfileSidebar(true)}
-                className={`p-2 rounded-full transition cursor-pointer shrink-0 ml-1 ${
-                  darkMode
-                    ? "text-gray-400 hover:text-emerald-400 hover:bg-[#202c33]"
-                    : "text-gray-500 hover:text-emerald-600 hover:bg-gray-100"
-                }`}
-                title="Settings / Edit Profile"
-              >
-                <FiSettings className="text-lg" />
-              </button>
-            </div>
-          </div>
-
-          {/* MOBILE BOTTOM TAB BAR (Chats / Settings) — WhatsApp style */}
-          <div
-            className={`lg:hidden border-t flex items-stretch shrink-0 transition-colors duration-200 ${
-              darkMode ? "border-[#222e35] bg-[#111b21]" : "border-gray-200/80 bg-white"
-            }`}
-          >
-            <button
-              onClick={() => setShowProfileSidebar(false)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors cursor-pointer ${
-                !showProfileSidebar
-                  ? darkMode
-                    ? "text-emerald-400"
-                    : "text-emerald-600"
-                  : "text-gray-400"
-              }`}
-            >
-              <FiMessageCircle className="text-xl" />
-              <span>Chats</span>
-            </button>
-            <button
-              onClick={() => setShowProfileSidebar(true)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors cursor-pointer ${
-                showProfileSidebar
-                  ? darkMode
-                    ? "text-emerald-400"
-                    : "text-emerald-600"
-                  : "text-gray-400"
-              }`}
-            >
-              <FiSettings className="text-xl" />
-              <span>Settings</span>
-            </button>
-          </div>
-        </div>
-
-        {/* WHATSAPP-STYLE PROFILE PANEL (SLIDE DRAWER) */}
-        <div
-          className={`absolute inset-0 z-30 flex flex-col transition-transform duration-300 ease-in-out ${
-            darkMode ? "bg-[#111b21] text-[#e9edef]" : "bg-white text-gray-800"
-          } ${
-            showProfileSidebar
-              ? "translate-x-0 max-lg:animate-slide-in-up"
-              : "-translate-x-full pointer-events-none"
-          }`}
-        >
-          {/* Hidden File Input for Profile Photo */}
-          <input
-            type="file"
-            ref={profileInputRef}
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="hidden"
-          />
-
-          {/* Profile Header */}
-          <div
-            className={`h-16 px-4 flex items-center gap-4 shrink-0 shadow-sm transition-colors ${
-              darkMode ? "bg-[#202c33] border-b border-[#222e35] text-white" : "bg-emerald-600 text-white"
-            }`}
-          >
-            <button
-              onClick={() => setShowProfileSidebar(false)}
-              className="p-2 hover:bg-white/10 rounded-full transition cursor-pointer"
-              title="Back to chats"
-            >
-              <FiArrowLeft className="text-xl" />
-            </button>
-            <h2 className="text-base font-semibold tracking-wide">Edit profile</h2>
-          </div>
-
-          {/* Profile Body */}
-          <div
-            className={`flex-1 overflow-y-auto p-6 flex flex-col items-center transition-colors ${
-              darkMode ? "bg-[#111b21]" : "bg-white"
-            }`}
-          >
-            {/* Profile Photo with Change Photo overlay */}
-            <div
-              onClick={handleImageClick}
-              className="relative group cursor-pointer my-3"
-            >
-              <Avatar
-                src={user.user.profilePic}
-                name={user.user.name}
-                className="w-36 h-36 rounded-full object-cover shadow-md ring-4 ring-emerald-500/20 text-5xl"
-              />
-              <div
-                className={`absolute inset-0 bg-black/45 rounded-full flex flex-col items-center justify-center text-white ${
-                  uploadingPhoto
-                    ? "opacity-100"
-                    : "opacity-0 group-hover:opacity-100"
-                } transition-opacity duration-200`}
-              >
-                {uploadingPhoto ? (
-                  <div className="flex flex-col items-center">
-                    <FiRefreshCw className="text-2xl animate-spin mb-1" />
-                    <span className="text-[10px] font-medium uppercase tracking-wider">
-                      Uploading...
-                    </span>
-                  </div>
-                ) : (
-                  <>
-                    <FiCamera className="text-2xl mb-1" />
-                    <span className="text-[10px] font-medium uppercase tracking-wider">
-                      Change Photo
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-            <p className="text-[11px] text-gray-400 mb-6 text-center">
-              Click photo to change profile photo
-            </p>
-
-            {/* Profile Info Cards (WhatsApp Style) */}
-            <div className="w-full space-y-6">
-              {/* About Section */}
-              <div className={`border-b pb-3 ${darkMode ? "border-[#222e35]" : "border-gray-200"}`}>
-                <span
-                  className={`text-[11px] font-medium uppercase tracking-wider block mb-1 ${
-                    darkMode ? "text-gray-400" : "text-emerald-700"
-                  }`}
-                >
-                  ABOUT
-                </span>
-                <div className="flex items-center justify-between gap-2">
-                  {editingAbout ? (
-                    <div className="flex items-center gap-2 w-full">
-                      <input
-                        type="text"
-                        value={aboutInput}
-                        onChange={(e) => setAboutInput(e.target.value)}
-                        className={`flex-1 text-sm border-b-2 border-emerald-500 bg-transparent focus:outline-none py-1 ${
-                          darkMode ? "text-white" : "text-gray-800"
-                        }`}
-                        autoFocus
-                      />
-                      <button
-                        onClick={handleSaveAbout}
-                        className={`p-1.5 text-emerald-600 rounded-full cursor-pointer ${
-                          darkMode ? "hover:bg-[#202c33]" : "hover:bg-emerald-50"
-                        }`}
-                        title="Save about"
-                      >
-                        <FiCheck className="text-base" />
-                      </button>
-                      <button
-                        onClick={() => setEditingAbout(false)}
-                        className={`p-1.5 text-gray-400 rounded-full cursor-pointer ${
-                          darkMode ? "hover:bg-[#202c33]" : "hover:bg-gray-100"
-                        }`}
-                        title="Cancel"
-                      >
-                        <FiX className="text-base" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-emerald-500 text-base shrink-0">
-                          😊
-                        </span>
-                        <p
-                          className={`text-sm truncate font-normal ${
-                            darkMode ? "text-[#e9edef]" : "text-gray-700"
-                          }`}
-                        >
-                          {user.user.about || "What's happening?"}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setAboutInput(
-                            user.user.about || "What's happening?",
-                          );
-                          setEditingAbout(true);
-                        }}
-                        className={`p-1.5 rounded-full transition shrink-0 cursor-pointer ${
-                          darkMode
-                            ? "text-gray-400 hover:text-emerald-400 hover:bg-[#202c33]"
-                            : "text-gray-400 hover:text-emerald-600 hover:bg-gray-50"
-                        }`}
-                        title="Edit about"
-                      >
-                        <FiEdit2 className="text-sm" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Name Section */}
-              <div className={`border-b pb-3 ${darkMode ? "border-[#222e35]" : "border-gray-200"}`}>
-                <span
-                  className={`text-[11px] font-medium uppercase tracking-wider block mb-1 ${
-                    darkMode ? "text-gray-400" : "text-emerald-700"
-                  }`}
-                >
-                  NAME
-                </span>
-                <div className="flex items-center justify-between gap-2">
-                  {editingName ? (
-                    <div className="flex items-center gap-2 w-full">
-                      <input
-                        type="text"
-                        value={nameInput}
-                        onChange={(e) => setNameInput(e.target.value)}
-                        className={`flex-1 text-sm border-b-2 border-emerald-500 bg-transparent focus:outline-none py-1 ${
-                          darkMode ? "text-white" : "text-gray-800"
-                        }`}
-                        autoFocus
-                      />
-                      <button
-                        onClick={handleSaveName}
-                        className={`p-1.5 text-emerald-600 rounded-full cursor-pointer ${
-                          darkMode ? "hover:bg-[#202c33]" : "hover:bg-emerald-50"
-                        }`}
-                        title="Save name"
-                      >
-                        <FiCheck className="text-base" />
-                      </button>
-                      <button
-                        onClick={() => setEditingName(false)}
-                        className={`p-1.5 text-gray-400 rounded-full cursor-pointer ${
-                          darkMode ? "hover:bg-[#202c33]" : "hover:bg-gray-100"
-                        }`}
-                        title="Cancel"
-                      >
-                        <FiX className="text-base" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <p
-                        className={`text-sm font-semibold truncate flex-1 ${
-                          darkMode ? "text-[#e9edef]" : "text-gray-800"
-                        }`}
-                      >
-                        {user.user.name}
-                      </p>
-                      <button
-                        onClick={() => {
-                          setNameInput(user.user.name);
-                          setEditingName(true);
-                        }}
-                        className={`p-1.5 rounded-full transition shrink-0 cursor-pointer ${
-                          darkMode
-                            ? "text-gray-400 hover:text-emerald-400 hover:bg-[#202c33]"
-                            : "text-gray-400 hover:text-emerald-600 hover:bg-gray-50"
-                        }`}
-                        title="Edit name"
-                      >
-                        <FiEdit2 className="text-sm" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Email Section */}
-              <div className={`border-b pb-3 ${darkMode ? "border-[#222e35]" : "border-gray-200"}`}>
-                <span
-                  className={`text-[11px] font-medium uppercase tracking-wider block mb-1 ${
-                    darkMode ? "text-gray-400" : "text-emerald-700"
-                  }`}
-                >
-                  EMAIL
-                </span>
-                <p
-                  className={`text-sm font-medium ${
-                    darkMode ? "text-[#e9edef]" : "text-gray-700"
-                  }`}
-                >
-                  {user.user.email}
-                </p>
-              </div>
-
-              {/* Action Buttons: Dark Theme Toggle, Change Password, Logout */}
-              <div className="pt-2 space-y-3">
-                {/* Dark Theme Toggle (Matching reference image 2) */}
-                <div
-                  id="profile-theme-toggle"
-                  onClick={() => setDarkMode((prev) => !prev)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all cursor-pointer select-none group ${
-                    darkMode
-                      ? "border-[#2a3942] bg-[#111b21] hover:bg-[#202c33]"
-                      : "border-gray-200 bg-gray-50/80 hover:bg-gray-100"
-                  }`}
-                  title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    {darkMode ? (
-                      <IoSunny className="text-amber-400 text-xl shrink-0 transition-transform group-hover:rotate-45" />
-                    ) : (
-                      <IoMoon className="text-gray-600 text-xl shrink-0 transition-transform group-hover:-rotate-12" />
-                    )}
-                    <div className="flex flex-col min-w-0 text-left">
-                      <span
-                        className={`text-sm font-medium leading-tight ${
-                          darkMode ? "text-[#e9edef]" : "text-gray-800"
-                        }`}
-                      >
-                        {darkMode ? "Light Mode" : "Dark Mode"}
-                      </span>
-                      <span className="text-[10px] text-gray-400 leading-tight mt-0.5">
-                        {darkMode
-                          ? "Click to switch to light mode"
-                          : "Click to switch to dark mode"}
-                      </span>
-                    </div>
-                  </div>
-                  <div
-                    className={`w-11 h-6 shrink-0 flex items-center rounded-full p-1 transition-colors duration-300 ${
-                      darkMode ? "bg-emerald-500" : "bg-gray-300"
-                    }`}
-                  >
-                    <div
-                      className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform duration-300 ${
-                        darkMode ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Change Password Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentPassword("");
-                    setNewPassword("");
-                    setConfirmPassword("");
-                    setPasswordError("");
-                    setPasswordSuccess("");
-                    setShowPasswordModal(true);
-                  }}
-                  className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-2xs cursor-pointer ${
-                    darkMode
-                      ? "border-[#2a3942] text-gray-200 hover:border-emerald-500 hover:text-emerald-400 hover:bg-[#202c33]"
-                      : "border-gray-200 text-gray-700 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50/40 bg-white"
-                  }`}
-                >
-                  <FiLock className="text-sm text-emerald-600" />
-                  <span>Change Password</span>
-                </button>
-
-                {/* Log Out Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowLogoutConfirm(true)}
-                  className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-2xs cursor-pointer ${
-                    darkMode
-                      ? "border-red-900/50 text-red-400 hover:bg-red-950/20"
-                      : "border-red-200 text-red-600 hover:bg-red-50 bg-white"
-                  }`}
-                >
-                  <FiLogOut className="text-sm" />
-                  <span>Log Out</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Sidebar
+        users={users}
+        selectedUser={selectedUser}
+        openChat={openChat}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        mobileShowChat={mobileShowChat}
+      />
 
       {/* CHAT MAIN CONTAINER */}
       <div
@@ -2521,9 +1919,10 @@ export default function Chat() {
               <button
                 type="button"
                 onClick={() => {
-                  messagesEndRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                  });
+                  if (messagesContainerRef.current) {
+                    messagesContainerRef.current.scrollTop =
+                      messagesContainerRef.current.scrollHeight;
+                  }
                   setShowScrollBottom(false);
                 }}
                 className={`absolute right-6 bottom-24 z-30 w-10 h-10 rounded-full shadow-lg border flex items-center justify-center transition-all hover:scale-110 active:scale-95 animate-fadeIn cursor-pointer ${
@@ -2657,270 +2056,7 @@ export default function Chat() {
         )}
       </div>
 
-      {/* CHANGE PASSWORD POPUP MODAL */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
-          <div
-            className={`rounded-2xl shadow-2xl border w-full max-w-sm p-6 space-y-4 transition-colors ${
-              darkMode
-                ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
-                : "bg-white border-gray-200/80 text-gray-800 shadow-2xl"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <h3
-                className={`font-semibold text-base flex items-center gap-2 ${
-                  darkMode ? "text-gray-100" : "text-gray-800"
-                }`}
-              >
-                <FiLock className={darkMode ? "text-emerald-400" : "text-emerald-600"} /> Change Password
-              </h3>
-              <button
-                onClick={() => setShowPasswordModal(false)}
-                className={`p-1 rounded-full transition cursor-pointer ${
-                  darkMode
-                    ? "hover:bg-[#2a3942] text-gray-400 hover:text-gray-200"
-                    : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                <FiX className="text-base" />
-              </button>
-            </div>
 
-            {passwordError && (
-              <div
-                className={`p-2.5 text-xs rounded-lg border ${
-                  darkMode
-                    ? "text-red-400 bg-red-950/40 border-red-900/40"
-                    : "text-red-600 bg-red-50 border-red-200"
-                }`}
-              >
-                {passwordError}
-              </div>
-            )}
-            {passwordSuccess && (
-              <div
-                className={`p-2.5 text-xs rounded-lg border ${
-                  darkMode
-                    ? "text-emerald-400 bg-emerald-950/40 border-emerald-900/40"
-                    : "text-emerald-700 bg-emerald-50 border-emerald-200"
-                }`}
-              >
-                {passwordSuccess}
-              </div>
-            )}
-
-            <form onSubmit={handlePasswordSubmit} className="space-y-3">
-              <div>
-                <label
-                  className={`text-xs font-medium block mb-1 ${
-                    darkMode ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  Current Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 ${
-                    darkMode
-                      ? "border-[#2a3942] bg-[#111b21] text-white"
-                      : "border-gray-200 bg-white text-gray-800"
-                  }`}
-                  placeholder="Enter current password"
-                />
-              </div>
-
-              <div>
-                <label
-                  className={`text-xs font-medium block mb-1 ${
-                    darkMode ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 ${
-                    darkMode
-                      ? "border-[#2a3942] bg-[#111b21] text-white"
-                      : "border-gray-200 bg-white text-gray-800"
-                  }`}
-                  placeholder="At least 6 characters"
-                />
-              </div>
-
-              <div>
-                <label
-                  className={`text-xs font-medium block mb-1 ${
-                    darkMode ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  Re-type New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 ${
-                    darkMode
-                      ? "border-[#2a3942] bg-[#111b21] text-white"
-                      : "border-gray-200 bg-white text-gray-800"
-                  }`}
-                  placeholder="Confirm new password"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPasswordModal(false)}
-                  className={`px-4 py-2 text-xs font-medium rounded-lg transition cursor-pointer ${
-                    darkMode
-                      ? "text-gray-300 hover:bg-[#2a3942]"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-xs cursor-pointer"
-                >
-                  Update
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* CLEAR CHAT CONFIRMATION MODAL */}
-      {showClearChatConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
-          <div
-            className={`rounded-2xl shadow-2xl border w-full max-w-sm p-6 space-y-4 transition-colors ${
-              darkMode
-                ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
-                : "bg-white border-gray-200/80 text-gray-800 shadow-2xl"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 ${
-                  darkMode
-                    ? "bg-red-950/50 text-red-400"
-                    : "bg-red-50 text-red-500"
-                }`}
-              >
-                <FiTrash2 />
-              </div>
-              <div>
-                <h3
-                  className={`font-semibold text-base ${
-                    darkMode ? "text-gray-100" : "text-gray-800"
-                  }`}
-                >
-                  Clear chat?
-                </h3>
-                <p
-                  className={`text-xs mt-0.5 ${
-                    darkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  All messages in this chat will be deleted for you only. The
-                  other person can still see them.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                onClick={() => setShowClearChatConfirm(false)}
-                className={`px-4 py-2 text-xs font-medium rounded-lg transition cursor-pointer ${
-                  darkMode
-                    ? "text-gray-300 hover:bg-[#2a3942]"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleClearChat}
-                className="px-4 py-2 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition shadow-xs cursor-pointer"
-              >
-                Clear Chat
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* LOGOUT CONFIRMATION MODAL */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
-          <div
-            className={`rounded-2xl shadow-2xl border w-full max-w-sm p-6 space-y-4 transition-colors ${
-              darkMode
-                ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
-                : "bg-white border-gray-200/80 text-gray-800 shadow-2xl"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 ${
-                  darkMode
-                    ? "bg-red-950/50 text-red-400"
-                    : "bg-red-50 text-red-500"
-                }`}
-              >
-                <FiLogOut />
-              </div>
-              <div>
-                <h3
-                  className={`font-semibold text-base ${
-                    darkMode ? "text-gray-100" : "text-gray-800"
-                  }`}
-                >
-                  Log out?
-                </h3>
-                <p
-                  className={`text-xs mt-0.5 ${
-                    darkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  Are you sure you want to log out of your account?
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className={`px-4 py-2 text-xs font-medium rounded-lg transition cursor-pointer ${
-                  darkMode
-                    ? "text-gray-300 hover:bg-[#2a3942]"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmLogout}
-                className="px-4 py-2 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition shadow-xs cursor-pointer"
-              >
-                Log Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
