@@ -2,10 +2,10 @@ const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
   {
-    sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    sender: { type: Number, ref: "User" },
     content: String,
     chat: { type: mongoose.Schema.Types.ObjectId, ref: "Chat" },
-    seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    seenBy: [{ type: Number, ref: "User" }],
     fileUrl: String,
     status: {
       type: String,
@@ -16,10 +16,10 @@ const messageSchema = new mongoose.Schema(
     isPinned: { type: Boolean, default: false },
     isEdited: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
-    deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    deletedFor: [{ type: Number, ref: "User" }],
     reactions: [
       {
-        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        user: { type: Number, ref: "User" },
         emoji: { type: String, required: true },
       },
     ],
