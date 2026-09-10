@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 import Avatar from "./Avatar";
 import Profile from "./Profile";
@@ -10,6 +10,7 @@ import {
   FiMessageCircle,
   FiUserPlus,
 } from "react-icons/fi";
+import axios from "../utils/axios";
 
 export default function Sidebar({
   users = [],
@@ -24,6 +25,24 @@ export default function Sidebar({
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [showProfileSidebar, setShowProfileSidebar] = useState(false);
   const [showConnectionPanel, setShowConnectionPanel] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Fetch pending request count on mount and after panel closes
+  const fetchPendingCount = async () => {
+    if (!user?.token) return;
+    try {
+      const { data } = await axios.get("/connection/received", {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      setPendingCount(data.length);
+    } catch {
+      // silently ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingCount();
+  }, [user?.token]);
 
   // Sidebar list time: today -> HH:MM, yesterday -> "Yesterday", else date
   const formatListTime = (dateString) => {
@@ -70,17 +89,22 @@ export default function Sidebar({
             Friends Chat App
           </h1>
 
-          {/* + Add Connection button */}
+          {/* + Add Connection button with pending badge */}
           <button
             onClick={() => setShowConnectionPanel(true)}
             title="Manage Connections"
-            className={`p-2 rounded-full transition-all cursor-pointer group ${
+            className={`relative p-2 rounded-full transition-all cursor-pointer group ${
               darkMode
                 ? "text-gray-400 hover:text-emerald-400 hover:bg-[#202c33]"
                 : "text-gray-500 hover:text-emerald-600 hover:bg-emerald-50"
             }`}
           >
             <FiUserPlus className="text-lg" />
+            {pendingCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[9px] font-bold">
+                {pendingCount > 9 ? "9+" : pendingCount}
+              </span>
+            )}
           </button>
         </div>
 
@@ -397,9 +421,15 @@ export default function Sidebar({
       {/* CONNECTION PANEL (SLIDE DRAWER) */}
       <ConnectionPanel
         isOpen={showConnectionPanel}
-        onClose={() => setShowConnectionPanel(false)}
+        onClose={() => {
+          setShowConnectionPanel(false);
+          fetchPendingCount(); // refresh badge after panel closes
+        }}
         darkMode={darkMode}
-        onConnectionAccepted={onConnectionAccepted}
+        onConnectionAccepted={() => {
+          onConnectionAccepted();
+          fetchPendingCount();
+        }}
         onSelectUser={openChat}
       />
 

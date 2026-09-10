@@ -84,8 +84,8 @@ export default function ConnectionPanel({
   // Refresh on open / tab change
   useEffect(() => {
     if (!isOpen) return;
+    fetchReceived(); // always fetch so badge count is accurate
     if (activeTab === "all") fetchConnections();
-    if (activeTab === "received") fetchReceived();
     if (activeTab === "send") {
       setSearchQuery("");
       setSearchResults([]);
