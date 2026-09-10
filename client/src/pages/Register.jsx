@@ -7,8 +7,12 @@ import { IoChatbubbleEllipses } from "react-icons/io5";
 
 export default function Register() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const passwordMismatch = confirmPassword.length > 0 && form.password !== confirmPassword;
   const navigate = useNavigate();
 
   const isDark = localStorage.getItem("theme") === "dark";
@@ -21,6 +25,10 @@ export default function Register() {
     }
     if (form.password.length < 6) {
       toast.warning("Password must be at least 6 characters");
+      return;
+    }
+    if (form.password !== confirmPassword) {
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -172,6 +180,55 @@ export default function Register() {
                   )}
                 </button>
               </div>
+            </div>
+            <div>
+              <label
+                className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                  isDark ? "text-gray-400" : "text-gray-500"
+                }`}
+              >
+                Retype Password
+              </label>
+              <div className="relative flex items-center">
+                <FiLock className="absolute left-3.5 text-gray-400 text-base" />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  placeholder="Retype your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={`w-full pl-10 pr-10 py-2.5 rounded-xl text-sm border transition-all focus:outline-none focus:ring-2 ${
+                    passwordMismatch
+                      ? "border-red-500 focus:ring-red-500/20 focus:border-red-500"
+                      : "focus:ring-emerald-500/20"
+                  } ${
+                    isDark
+                      ? `bg-[#202c33] text-[#e9edef] placeholder-gray-500 ${
+                          passwordMismatch ? "border-red-500" : "border-[#2a3942] focus:border-emerald-500"
+                        }`
+                      : `bg-[#f8fafc] text-gray-800 placeholder-gray-400 ${
+                          passwordMismatch ? "border-red-500" : "border-gray-200 focus:bg-white focus:border-emerald-500"
+                        }`
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3.5 text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                  title={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  {showConfirmPassword ? (
+                    <FiEyeOff className="text-base" />
+                  ) : (
+                    <FiEye className="text-base" />
+                  )}
+                </button>
+              </div>
+              {passwordMismatch && (
+                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                  ⚠ Passwords do not match
+                </p>
+              )}
             </div>
 
             <button
