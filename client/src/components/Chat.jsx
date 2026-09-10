@@ -5,6 +5,7 @@ import {
   useContext,
   useRef,
   useMemo,
+  useCallback,
 } from "react";
 import axios from "../utils/axios";
 import { socket } from "../socket/socket";
@@ -16,7 +17,6 @@ import Avatar from "./Avatar";
 import DocumentPreviewModal from "./DocumentPreviewModal";
 import Sidebar from "./Sidebar";
 import {
-  FiSend,
   FiPaperclip,
   FiSmile,
   FiX,
@@ -35,6 +35,7 @@ import {
 } from "react-icons/fi";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
 import { IoCheckmark, IoCheckmarkDone } from "react-icons/io5";
+import { MdSend } from "react-icons/md";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
@@ -323,20 +324,20 @@ export default function Chat() {
   }, []);
 
   // FETCH USERS
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const { data } = await axios.get("/auth/users", {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        setUsers(data);
-      } catch (err) {
-        console.error("Failed to load users", err);
-      }
-    };
+  const fetchUsers = useCallback(async () => {
+    try {
+      const { data } = await axios.get("/auth/users", {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      setUsers(data);
+    } catch (err) {
+      console.error("Failed to load users", err);
+    }
+  }, [user?.token]);
 
+  useEffect(() => {
     if (user?.token) fetchUsers();
-  }, [user]);
+  }, [user?.token, fetchUsers]);
 
   if (!user) return null;
 
@@ -918,6 +919,7 @@ export default function Chat() {
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         mobileShowChat={mobileShowChat}
+        onConnectionAccepted={fetchUsers}
       />
 
       {/* CHAT MAIN CONTAINER */}
@@ -1778,102 +1780,13 @@ export default function Chat() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* REPLY / EDIT PREVIEW BAR */}
-            {(replyingTo || editingMessage) && (
-              <div
-                className={`px-6 py-2 border-t flex items-center justify-between text-xs animate-fadeIn shrink-0 ${
-                  darkMode
-                    ? "bg-[#111b21] border-[#222e35] text-[#e9edef]"
-                    : "bg-emerald-50/70 border-emerald-100 text-gray-800"
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {replyingTo ? (
-                    <>
-                      <FiCornerUpLeft
-                        className={`text-sm shrink-0 ${
-                          darkMode
-                            ? "text-emerald-400"
-                            : "text-emerald-600"
-                        }`}
-                      />
-                      <span
-                        className={`font-semibold shrink-0 ${
-                          darkMode
-                            ? "text-emerald-400"
-                            : "text-emerald-700"
-                        }`}
-                      >
-                        Replying to{" "}
-                        {replyingTo.sender._id === user.user._id
-                          ? "You"
-                          : replyingTo.sender.name}
-                        :
-                      </span>
-                      <span
-                        className={`truncate ${
-                          darkMode
-                            ? "text-gray-400"
-                            : "text-gray-600 font-normal"
-                        }`}
-                      >
-                        "{replyingTo.content || "Attachment"}"
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <FiEdit2
-                        className={`text-sm shrink-0 ${
-                          darkMode
-                            ? "text-emerald-400"
-                            : "text-emerald-600"
-                        }`}
-                      />
-                      <span
-                        className={`font-semibold shrink-0 ${
-                          darkMode
-                            ? "text-emerald-400"
-                            : "text-emerald-700"
-                        }`}
-                      >
-                        Editing message:
-                      </span>
-                      <span
-                        className={`truncate ${
-                          darkMode
-                            ? "text-gray-400"
-                            : "text-gray-600 font-normal"
-                        }`}
-                      >
-                        "{editingMessage.content}"
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => {
-                    setReplyingTo(null);
-                    setEditingMessage(null);
-                    setMessage("");
-                  }}
-                  className={`p-1 rounded-full transition cursor-pointer ${
-                    darkMode
-                      ? "hover:bg-[#202c33] text-gray-400 hover:text-gray-200"
-                      : "hover:bg-emerald-100 text-gray-500 hover:text-gray-800"
-                  }`}
-                  title="Cancel"
-                >
-                  <FiX className="text-sm" />
-                </button>
-              </div>
-            )}
-
             {/* EMOJI PICKER POPUP */}
             {showEmojiPicker && (
               <div
                 ref={emojiPickerRef}
-                className={`absolute bottom-20 left-6 z-40 shadow-2xl rounded-2xl border overflow-hidden ${
+                className={`absolute left-6 z-40 shadow-2xl rounded-2xl border overflow-hidden ${
+                  replyingTo || editingMessage ? "bottom-32" : "bottom-20"
+                } ${
                   darkMode ? "border-[#2a3942]" : "border-gray-200"
                 }`}
               >
@@ -1937,91 +1850,155 @@ export default function Chat() {
               </button>
             )}
 
-            {/* KARYAH-STYLE INPUT BAR */}
+            {/* WHATSAPP-STYLE INPUT BAR (reply/edit preview integrated inside the container) */}
             <div
               className={`p-2.5 sm:p-4 border-t shrink-0 transition-colors duration-200 ${
                 darkMode ? "bg-[#202c33] border-[#222e35]" : "bg-white border-gray-200/80"
               }`}
             >
               <div
-                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 transition-all shadow-2xs ${
+                className={`rounded-2xl border transition-all shadow-2xs overflow-hidden ${
                   darkMode
                     ? "bg-[#2a3942] border-transparent"
                     : "bg-[#f8fafc] border-gray-200/90 focus-within:border-emerald-500/80 focus-within:ring-2 focus-within:ring-emerald-500/20"
                 }`}
               >
-                {/* Emoji Picker Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className={`emoji-toggle-button p-1.5 rounded-full transition text-gray-400 hover:text-amber-500 ${
-                    darkMode ? "hover:bg-gray-700/50" : "hover:bg-gray-200/50"
-                  }`}
-                  title="Insert emoji"
-                >
-                  <FiSmile className="text-lg" />
-                </button>
+                {/* REPLY / EDIT PREVIEW (WhatsApp style — inside the input container) */}
+                {(replyingTo || editingMessage) && (
+                  <div
+                    className={`flex items-start gap-3 px-3.5 pt-3 pb-2 border-b animate-fadeIn ${
+                      darkMode ? "border-[#222e35]" : "border-gray-200/80"
+                    }`}
+                  >
+                    {/* Colored vertical bar */}
+                    <span
+                      className={`w-1 self-stretch rounded-full shrink-0 mt-0.5 ${
+                        editingMessage ? "bg-amber-500" : "bg-emerald-500"
+                      }`}
+                    />
 
-                {/* Text Input Field */}
-                <input
-                  ref={messageInputRef}
-                  value={message}
-                  onChange={handleTyping}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  className={`flex-1 bg-transparent border-none px-2 py-1 text-sm placeholder-gray-400 focus:outline-none ${
-                    darkMode ? "text-[#e9edef]" : "text-gray-800"
-                  }`}
-                  placeholder="Type a message..."
-                />
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className={`text-[11px] font-semibold leading-tight ${
+                          darkMode ? "text-emerald-400" : "text-emerald-700"
+                        }`}
+                      >
+                        {replyingTo ? (
+                          <>
+                            Replying to{" "}
+                            {replyingTo.sender._id === user.user._id
+                              ? "You"
+                              : replyingTo.sender.name}
+                            :
+                          </>
+                        ) : (
+                          "Editing message"
+                        )}
+                      </div>
+                      <div
+                        className={`text-xs truncate mt-0.5 ${
+                          darkMode ? "text-gray-400" : "text-gray-600"
+                        }`}
+                      >
+                        {replyingTo
+                          ? replyingTo.content || "📄 Attachment"
+                          : editingMessage.content}
+                      </div>
+                    </div>
 
-                {/* Hidden File Input */}
-                <input
-                  type="file"
-                  ref={chatFileRef}
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    uploadFile(file);
-                    if (e.target) e.target.value = "";
-                  }}
-                />
+                    <button
+                      onClick={() => {
+                        setReplyingTo(null);
+                        setEditingMessage(null);
+                        setMessage("");
+                      }}
+                      className={`p-1 rounded-full transition cursor-pointer shrink-0 ${
+                        darkMode
+                          ? "hover:bg-[#111b21] text-gray-400 hover:text-gray-200"
+                          : "hover:bg-gray-200/70 text-gray-500 hover:text-gray-800"
+                      }`}
+                      title="Cancel"
+                    >
+                      <FiX className="text-sm" />
+                    </button>
+                  </div>
+                )}
 
-                {/* File Attachment Button */}
-                <button
-                  type="button"
-                  onClick={() => chatFileRef.current.click()}
-                  className={`p-1.5 rounded-full transition ${
-                    darkMode
-                      ? "text-gray-400 hover:text-emerald-400 hover:bg-gray-700/50"
-                      : "text-gray-500 hover:text-emerald-600 hover:bg-gray-100"
-                  }`}
-                  title="Attach file"
-                >
-                  <FiPaperclip className="text-lg" />
-                </button>
+                {/* Input row */}
+                <div className="flex items-center gap-2 px-3 py-1.5">
+                  {/* File Attachment Button (left, next to emoji — WhatsApp style) */}
+                  <button
+                    type="button"
+                    onClick={() => chatFileRef.current.click()}
+                    className={`p-1.5 rounded-full transition ${
+                      darkMode
+                        ? "text-gray-400 hover:text-emerald-400 hover:bg-gray-700/50"
+                        : "text-gray-500 hover:text-emerald-600 hover:bg-gray-100"
+                    }`}
+                    title="Attach file"
+                  >
+                    <FiPaperclip className="text-lg" />
+                  </button>
 
-                {/* Send Button */}
-                <button
-                  type="button"
-                  onClick={() => sendMessage()}
-                  disabled={!message.trim()}
-                  className={`p-2 rounded-full transition-all flex items-center justify-center ${
-                    message.trim()
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:scale-105"
-                      : darkMode
-                        ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  }`}
-                  title={editingMessage ? "Save Edit" : "Send"}
-                >
-                  <FiSend className="text-sm translate-x-px" />
-                </button>
+                  {/* Hidden File Input */}
+                  <input
+                    type="file"
+                    ref={chatFileRef}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      uploadFile(file);
+                      if (e.target) e.target.value = "";
+                    }}
+                  />
+
+                  {/* Emoji Picker Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className={`emoji-toggle-button p-1.5 rounded-full transition text-gray-400 hover:text-amber-500 ${
+                      darkMode ? "hover:bg-gray-700/50" : "hover:bg-gray-200/50"
+                    }`}
+                    title="Insert emoji"
+                  >
+                    <FiSmile className="text-lg" />
+                  </button>
+
+                  {/* Text Input Field */}
+                  <input
+                    ref={messageInputRef}
+                    value={message}
+                    onChange={handleTyping}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }}
+                    className={`flex-1 bg-transparent border-none px-2 py-1 text-sm placeholder-gray-400 focus:outline-none ${
+                      darkMode ? "text-[#e9edef]" : "text-gray-800"
+                    }`}
+                    placeholder="Type a message..."
+                  />
+
+                  {/* Send Button (paper plane — same as WhatsApp) */}
+                  <button
+                    type="button"
+                    onClick={() => sendMessage()}
+                    disabled={!message.trim()}
+                    className={`p-2 rounded-full transition-all flex items-center justify-center ${
+                      message.trim()
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:scale-105"
+                        : darkMode
+                          ? "bg-gray-700 text-gray-500 cursor-not-allowed"
+                          : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    }`}
+                    title={editingMessage ? "Save Edit" : "Send"}
+                  >
+                    <MdSend className="text-base" />
+                  </button>
+                </div>
               </div>
             </div>
           </>

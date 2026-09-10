@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Message = require("../models/Message");
 const Chat = require("../models/Chat");
+const Connection = require("../models/Connection");
 
 exports.register = async (req, res) => {
   try {
@@ -52,25 +53,44 @@ exports.login = async (req, res) => {
   }
 };
 
-// GET ALL USERS (except logged user) with WhatsApp-style extras:
-// lastMessage (preview + time + direction) and unreadCount (messages they
-// sent that the logged-in user hasn't seen yet).
+// GET ALL USERS — returns only accepted connections of the logged-in user
+// with WhatsApp-style extras: lastMessage (preview + time + direction)
+// and unreadCount (messages they sent that the logged-in user hasn't seen yet).
 exports.getAllUsers = async (req, res) => {
   try {
+    const myId = req.user.id;
+
+    // Fetch all accepted connections involving this user
+    const connections = await Connection.find({
+      $or: [{ sender: myId }, { receiver: myId }],
+      status: "accepted",
+    });
+
+    // Get the IDs of connected users
+    const connectedUserIds = connections.map((c) =>
+      c.sender.toString() === myId
+        ? c.receiver.toString()
+        : c.sender.toString()
+    );
+
+    if (connectedUserIds.length === 0) {
+      return res.json([]);
+    }
+
     const users = await User.find({
-      _id: { $ne: req.user.id },
+      _id: { $in: connectedUserIds },
     }).select("-password");
 
     // Find 1:1 chats of the logged-in user, populated to read both members
     const chats = await Chat.find({
-      users: req.user.id,
+      users: myId,
       isGroupChat: false,
     }).populate("users", "_id");
 
     const chatByOtherUserId = {};
     chats.forEach((c) => {
       const other = c.users.find(
-        (u) => u._id.toString() !== req.user.id.toString(),
+        (u) => u._id.toString() !== myId.toString(),
       );
       if (other) chatByOtherUserId[other._id.toString()] = c._id;
     });
@@ -103,7 +123,7 @@ exports.getAllUsers = async (req, res) => {
             ? {
                 content: lastMsg.content,
                 hasAttachment: Boolean(lastMsg.fileUrl),
-                isMine: lastMsg.sender.toString() === req.user.id.toString(),
+                isMine: lastMsg.sender.toString() === myId.toString(),
                 createdAt: lastMsg.createdAt,
               }
             : null,
@@ -118,6 +138,7 @@ exports.getAllUsers = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch users" });
   }
 };
+
 
 // GET SINGLE USER
 exports.getSingleUser = async (req, res) => {

@@ -2,11 +2,13 @@ import { useContext, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
 import Avatar from "./Avatar";
 import Profile from "./Profile";
+import ConnectionPanel from "./ConnectionPanel";
 import {
   FiSearch,
   FiX,
   FiSettings,
   FiMessageCircle,
+  FiUserPlus,
 } from "react-icons/fi";
 
 export default function Sidebar({
@@ -16,10 +18,12 @@ export default function Sidebar({
   darkMode = false,
   setDarkMode = () => {},
   mobileShowChat = false,
+  onConnectionAccepted = () => {},
 }) {
   const { user } = useContext(AuthContext);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [showProfileSidebar, setShowProfileSidebar] = useState(false);
+  const [showConnectionPanel, setShowConnectionPanel] = useState(false);
 
   // Sidebar list time: today -> HH:MM, yesterday -> "Yesterday", else date
   const formatListTime = (dateString) => {
@@ -65,6 +69,19 @@ export default function Sidebar({
           >
             Friends Chat App
           </h1>
+
+          {/* + Add Connection button */}
+          <button
+            onClick={() => setShowConnectionPanel(true)}
+            title="Manage Connections"
+            className={`p-2 rounded-full transition-all cursor-pointer group ${
+              darkMode
+                ? "text-gray-400 hover:text-emerald-400 hover:bg-[#202c33]"
+                : "text-gray-500 hover:text-emerald-600 hover:bg-emerald-50"
+            }`}
+          >
+            <FiUserPlus className="text-lg" />
+          </button>
         </div>
 
         {/* SEARCH BAR (To search user names) */}
@@ -87,7 +104,7 @@ export default function Sidebar({
               type="text"
               value={userSearchQuery}
               onChange={(e) => setUserSearchQuery(e.target.value)}
-              placeholder="Search or start a new chat"
+              placeholder="Search connected users"
               className={`w-full bg-transparent text-xs placeholder-gray-400 focus:outline-none ${
                 darkMode ? "text-[#e9edef]" : "text-gray-800"
               }`}
@@ -118,130 +135,168 @@ export default function Sidebar({
           <div className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
             Direct Messages
           </div>
-          {users
-            .filter((u) =>
-              u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()),
-            )
-            .sort((a, b) => {
-              const timeA = a.lastMessage?.createdAt
-                ? new Date(a.lastMessage.createdAt).getTime()
-                : 0;
-              const timeB = b.lastMessage?.createdAt
-                ? new Date(b.lastMessage.createdAt).getTime()
-                : 0;
-              return timeB - timeA;
-            })
-            .map((u) => {
-              const isSelected = selectedUser?._id === u._id;
-              return (
-                <div
-                  key={u._id}
-                  onClick={() => openChat(u)}
-                  className={`px-4 py-3 flex items-center gap-3.5 cursor-pointer transition-all ${
-                    isSelected
-                      ? darkMode
-                        ? "bg-[#2a3942] border-l-4 border-emerald-500"
-                        : "bg-emerald-50/80 border-l-4 border-emerald-600"
-                      : darkMode
-                        ? "hover:bg-[#202c33]"
-                        : "hover:bg-gray-50/80"
-                  }`}
-                >
-                  <div className="relative shrink-0">
-                    <Avatar
-                      src={u.profilePic}
-                      name={u.name}
-                      className="w-12 h-12 rounded-full object-cover shadow-2xs text-xl"
-                    />
-                    <span
-                      className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 ${
-                        darkMode ? "border-[#111b21]" : "border-white"
-                      } ${
-                        u.isOnline
-                          ? "bg-emerald-500"
-                          : darkMode
-                            ? "bg-gray-600"
-                            : "bg-gray-300"
-                      }`}
-                    ></span>
-                  </div>
 
-                  <div className="flex-1 min-w-0">
-                    {/* Row 1: name + time */}
-                    <div className="flex items-center justify-between gap-2">
-                      <p
-                        className={`text-sm truncate leading-tight ${
-                          isSelected
-                            ? darkMode
-                              ? "text-emerald-400 font-semibold"
-                              : "text-emerald-900 font-semibold"
+          {users.length === 0 ? (
+            /* Empty state — no connections yet */
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                  darkMode ? "bg-[#202c33]" : "bg-emerald-50"
+                }`}
+              >
+                <FiUserPlus
+                  className={`text-2xl ${
+                    darkMode ? "text-emerald-500" : "text-emerald-600"
+                  }`}
+                />
+              </div>
+              <p
+                className={`text-sm font-semibold mb-1 ${
+                  darkMode ? "text-gray-300" : "text-gray-600"
+                }`}
+              >
+                No connections yet
+              </p>
+              <p className="text-xs text-gray-400 leading-snug mb-4">
+                Connect with people to start chatting
+              </p>
+              <button
+                onClick={() => setShowConnectionPanel(true)}
+                className={`text-xs font-semibold px-4 py-2 rounded-full transition cursor-pointer ${
+                  darkMode
+                    ? "bg-emerald-700 text-white hover:bg-emerald-600"
+                    : "bg-emerald-600 text-white hover:bg-emerald-700"
+                }`}
+              >
+                Add Connection
+              </button>
+            </div>
+          ) : (
+            users
+              .filter((u) =>
+                u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()),
+              )
+              .sort((a, b) => {
+                const timeA = a.lastMessage?.createdAt
+                  ? new Date(a.lastMessage.createdAt).getTime()
+                  : 0;
+                const timeB = b.lastMessage?.createdAt
+                  ? new Date(b.lastMessage.createdAt).getTime()
+                  : 0;
+                return timeB - timeA;
+              })
+              .map((u) => {
+                const isSelected = selectedUser?._id === u._id;
+                return (
+                  <div
+                    key={u._id}
+                    onClick={() => openChat(u)}
+                    className={`px-4 py-3 flex items-center gap-3.5 cursor-pointer transition-all ${
+                      isSelected
+                        ? darkMode
+                          ? "bg-[#2a3942] border-l-4 border-emerald-500"
+                          : "bg-emerald-50/80 border-l-4 border-emerald-600"
+                        : darkMode
+                          ? "hover:bg-[#202c33]"
+                          : "hover:bg-gray-50/80"
+                    }`}
+                  >
+                    <div className="relative shrink-0">
+                      <Avatar
+                        src={u.profilePic}
+                        name={u.name}
+                        className="w-12 h-12 rounded-full object-cover shadow-2xs text-xl"
+                      />
+                      <span
+                        className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 ${
+                          darkMode ? "border-[#111b21]" : "border-white"
+                        } ${
+                          u.isOnline
+                            ? "bg-emerald-500"
                             : darkMode
-                              ? "text-[#e9edef]"
-                              : "text-gray-800"
+                              ? "bg-gray-600"
+                              : "bg-gray-300"
                         }`}
-                      >
-                        {u.name}
-                      </p>
-                      {u.lastMessage?.createdAt && (
-                        <span
-                          className={`text-[10px] whitespace-nowrap shrink-0 leading-tight ${
-                            u.unreadCount > 0
+                      ></span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      {/* Row 1: name + time */}
+                      <div className="flex items-center justify-between gap-2">
+                        <p
+                          className={`text-sm truncate leading-tight ${
+                            isSelected
                               ? darkMode
                                 ? "text-emerald-400 font-semibold"
-                                : "text-emerald-600 font-semibold"
+                                : "text-emerald-900 font-semibold"
                               : darkMode
-                                ? "text-gray-500"
-                                : "text-gray-400"
+                                ? "text-[#e9edef]"
+                                : "text-gray-800"
                           }`}
                         >
-                          {formatListTime(u.lastMessage.createdAt)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Row 2: preview + unread badge */}
-                    <div className="flex items-center justify-between gap-2 mt-1">
-                      {u.lastMessage ? (
-                        <p className="text-xs text-gray-400 truncate leading-tight flex-1">
-                          {u.lastMessage.isMine && (
-                            <span className="text-gray-500 font-medium">
-                              You:{" "}
-                            </span>
-                          )}
-                          {u.lastMessage.hasAttachment
-                            ? "📄 Attachment"
-                            : u.lastMessage.content}
+                          {u.name}
                         </p>
-                      ) : (
-                        <p className="text-xs text-gray-400 truncate leading-tight flex-1">
-                          {u.isOnline ? (
-                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                              Online
-                            </span>
-                          ) : u.lastSeen ? (
-                            `Last seen ${new Date(u.lastSeen).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
-                            )}`
-                          ) : (
-                            "Offline"
-                          )}
-                        </p>
-                      )}
+                        {u.lastMessage?.createdAt && (
+                          <span
+                            className={`text-[10px] whitespace-nowrap shrink-0 leading-tight ${
+                              u.unreadCount > 0
+                                ? darkMode
+                                  ? "text-emerald-400 font-semibold"
+                                  : "text-emerald-600 font-semibold"
+                                : darkMode
+                                  ? "text-gray-500"
+                                  : "text-gray-400"
+                            }`}
+                          >
+                            {formatListTime(u.lastMessage.createdAt)}
+                          </span>
+                        )}
+                      </div>
 
-                      {u.unreadCount > 0 && (
-                        <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold shrink-0">
-                          {u.unreadCount > 99 ? "99+" : u.unreadCount}
-                        </span>
-                      )}
+                      {/* Row 2: preview + unread badge */}
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        {u.lastMessage ? (
+                          <p className="text-xs text-gray-400 truncate leading-tight flex-1">
+                            {u.lastMessage.isMine && (
+                              <span className="text-gray-500 font-medium">
+                                You:{" "}
+                              </span>
+                            )}
+                            {u.lastMessage.hasAttachment
+                              ? "📄 Attachment"
+                              : u.lastMessage.content}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-400 truncate leading-tight flex-1">
+                            {u.isOnline ? (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                Online
+                              </span>
+                            ) : u.lastSeen ? (
+                              `Last seen ${new Date(u.lastSeen).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}`
+                            ) : (
+                              "Offline"
+                            )}
+                          </p>
+                        )}
+
+                        {u.unreadCount > 0 && (
+                          <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold shrink-0">
+                            {u.unreadCount > 99 ? "99+" : u.unreadCount}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+          )}
         </div>
 
         {/* SIDEBAR FOOTER (Profile Section with Settings Button) — desktop only */}
@@ -338,6 +393,15 @@ export default function Sidebar({
           </button>
         </div>
       </div>
+
+      {/* CONNECTION PANEL (SLIDE DRAWER) */}
+      <ConnectionPanel
+        isOpen={showConnectionPanel}
+        onClose={() => setShowConnectionPanel(false)}
+        darkMode={darkMode}
+        onConnectionAccepted={onConnectionAccepted}
+        onSelectUser={openChat}
+      />
 
       {/* WHATSAPP-STYLE PROFILE PANEL (SLIDE DRAWER) */}
       <Profile
