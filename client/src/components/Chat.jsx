@@ -761,8 +761,8 @@ export default function Chat() {
           key={i}
           className={`${
             darkMode
-              ? "bg-amber-400 text-black font-semibold rounded-xs px-0.5"
-              : "bg-yellow-300 text-gray-900 font-medium rounded-xs px-0.5"
+              ? "bg-amber-400 text-black font-semibold rounded-sm px-0.5"
+              : "bg-yellow-300 text-gray-900 font-medium rounded-sm px-0.5"
           }`}
         >
           {part}
@@ -771,6 +771,22 @@ export default function Chat() {
         part
       ),
     );
+  };
+
+  // PINNED MESSAGE CONTENT RENDERER (Highlights @mentions in blue like Karyah v3)
+  const renderPinnedContent = (content) => {
+    if (!content) return <span className="italic text-gray-400">📄 Attachment</span>;
+    const parts = content.split(/(@[a-zA-Z0-9_*~.-]+)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith("@")) {
+        return (
+          <span key={index} className="text-blue-600 dark:text-blue-400 font-medium">
+            {part}
+          </span>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
   };
 
   // ATTACHMENT HELPERS (adapted from KARYAH-v3 Chatbox)
@@ -908,7 +924,7 @@ export default function Chat() {
   return (
     <div
       className={`chat-page-height flex select-none font-sans relative overflow-hidden ${
-        darkMode ? "dark bg-[#0c1317] text-[#e9edef]" : "bg-[#f0f2f5] text-gray-800"
+        darkMode ? "dark bg-[#0c1317] text-[#e9edef]" : "bg-[#efeae2] text-gray-800"
       }`}
     >
       {/* SIDEBAR */}
@@ -934,7 +950,7 @@ export default function Chat() {
             ? "max-lg:translate-x-0"
             : "max-lg:translate-x-full max-lg:pointer-events-none"
         } ${
-          darkMode ? "bg-[#0b141a]" : "bg-[#f9fafb]"
+          darkMode ? "bg-[#0b141a]" : "bg-[#efeae2]"
         }`}
       >
         {selectedUser ? (
@@ -960,7 +976,7 @@ export default function Chat() {
 
             {/* CHAT HEADER */}
             <div
-              className={`h-14 sm:h-16 px-3 sm:px-6 border-b flex items-center justify-between shrink-0 shadow-2xs z-20 transition-colors duration-200 ${
+              className={`h-14 sm:h-16 px-3 sm:px-6 border-b flex items-center justify-between shrink-0 shadow-sm z-20 transition-colors duration-200 ${
                 darkMode ? "bg-[#202c33] border-[#222e35]" : "bg-white border-gray-200/80"
               }`}
             >
@@ -1036,7 +1052,7 @@ export default function Chat() {
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-full border animate-fadeIn transition-all ${
                       darkMode
                         ? "bg-[#111b21] border-[#222e35] text-[#e9edef] focus-within:border-emerald-500/50"
-                        : "bg-[#f0f2f5] border-gray-200 text-gray-800 focus-within:border-emerald-500/60 focus-within:bg-white shadow-2xs"
+                        : "bg-[#f0f2f5] border-gray-200 text-gray-800 focus-within:border-emerald-500/60 focus-within:bg-white shadow-sm"
                     }`}
                   >
                     <FiSearch className="text-gray-400 text-sm shrink-0" />
@@ -1202,81 +1218,92 @@ export default function Chat() {
               </div>
             </div>
 
-            {/* PINNED MESSAGES BANNER (Karyah Style) */}
+            {/* PINNED MESSAGES BANNER (Karyah v3 Discussion Room Pill Style) */}
             {currentPinned && (
-              <div
-                className={`px-6 py-2 border-b flex items-center justify-between text-xs shadow-2xs z-10 animate-fadeIn ${
-                  darkMode
-                    ? "bg-[#182229] border-[#222e35] text-[#e9edef]"
-                    : "bg-[#fff9f3] border-amber-100/80 text-gray-700"
-                }`}
-              >
+              <div className="px-3 sm:px-6 pt-2.5 pb-1 z-10 shrink-0">
                 <div
-                  onClick={() => scrollToMessage(currentPinned._id)}
-                  className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer group"
+                  className={`w-full rounded-full border px-4 py-2 sm:px-5 sm:py-2.5 flex items-center justify-between shadow-sm transition-all animate-fadeIn ${
+                    darkMode
+                      ? "bg-[#182229] border-amber-500/30 text-[#e9edef]"
+                      : "bg-[#fff6ea] border-[#fed7aa] text-gray-800"
+                  }`}
                 >
-                  <BsPinAngleFill className="text-amber-500 text-sm shrink-0 group-hover:scale-110 transition-transform" />
-                  <span
-                    className={`font-semibold shrink-0 ${
-                      darkMode ? "text-white" : "text-gray-900"
-                    }`}
+                  <div
+                    onClick={() => scrollToMessage(currentPinned._id)}
+                    className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer group"
+                    title="Click to jump to message"
                   >
-                    {currentPinned.sender._id === user.user._id
-                      ? "You:"
-                      : `${currentPinned.sender.name}:`}
-                  </span>
-                  <span
-                    className={`truncate transition-colors ${
-                      darkMode
-                        ? "text-gray-300 group-hover:text-white"
-                        : "text-gray-600 group-hover:text-gray-900"
-                    }`}
-                  >
-                    {currentPinned.content || "📄 Attachment"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3 shrink-0 ml-4">
-                  {/* Pagination Dots */}
-                  {pinnedMessages.length > 1 && (
-                    <div className="flex items-center gap-1">
-                      {pinnedMessages.map((_, idx) => (
-                        <span
-                          key={idx}
-                          onClick={() => setPinnedIndex(idx)}
-                          className={`cursor-pointer transition-all duration-200 ${
-                            idx === pinnedIndex % pinnedMessages.length
-                              ? "w-4 h-1.5 bg-blue-600 rounded-full"
-                              : "w-1.5 h-1.5 bg-gray-300 hover:bg-gray-400 rounded-full"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Cycle / Refresh Button */}
-                  {pinnedMessages.length > 1 && (
-                    <button
-                      onClick={() =>
-                        setPinnedIndex(
-                          (prev) => (prev + 1) % pinnedMessages.length,
-                        )
-                      }
-                      className="text-gray-400 hover:text-gray-700 transition p-1"
-                      title="Next Pinned Message"
+                    <BsPinAngleFill className="text-[#ea580c] dark:text-orange-400 text-sm sm:text-base shrink-0 group-hover:scale-110 transition-transform" />
+                    <span
+                      className={`font-semibold shrink-0 text-xs sm:text-[13px] ${
+                        darkMode ? "text-white" : "text-gray-900"
+                      }`}
                     >
-                      <FiRefreshCw className="text-xs" />
-                    </button>
-                  )}
+                      {currentPinned.sender._id === user.user._id
+                        ? "You:"
+                        : `${currentPinned.sender.name}:`}
+                    </span>
+                    <span
+                      className={`truncate text-xs sm:text-[13px] transition-colors ${
+                        darkMode
+                          ? "text-gray-300 group-hover:text-white"
+                          : "text-gray-700 group-hover:text-gray-900"
+                      }`}
+                    >
+                      {renderPinnedContent(currentPinned.content)}
+                    </span>
+                  </div>
 
-                  {/* Unpin Button */}
-                  <button
-                    onClick={() => handleTogglePin(currentPinned)}
-                    className="text-gray-400 hover:text-red-500 transition p-1"
-                    title="Unpin Message"
-                  >
-                    <FiX className="text-sm" />
-                  </button>
+                  <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0 ml-3">
+                    {/* Segmented Dash Indicator (Karyah v3 style) */}
+                    {pinnedMessages.length > 1 && (
+                      <div className="flex items-center gap-1">
+                        {pinnedMessages.map((_, idx) => (
+                          <span
+                            key={idx}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPinnedIndex(idx);
+                            }}
+                            className={`cursor-pointer transition-all duration-300 ${
+                              idx === pinnedIndex % pinnedMessages.length
+                                ? "w-7 sm:w-10 h-1 bg-[#2563eb] rounded-full"
+                                : "w-3 sm:w-4 h-1 bg-gray-300/80 dark:bg-gray-600 hover:bg-gray-400 rounded-full"
+                            }`}
+                            title={`Pinned message ${idx + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Cycle / Refresh Button */}
+                    {pinnedMessages.length > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPinnedIndex(
+                            (prev) => (prev + 1) % pinnedMessages.length,
+                          );
+                        }}
+                        className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition p-1 hover:rotate-180 duration-300 cursor-pointer"
+                        title="Next Pinned Message"
+                      >
+                        <FiRefreshCw className="text-xs sm:text-sm" />
+                      </button>
+                    )}
+
+                    {/* Unpin Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTogglePin(currentPinned);
+                      }}
+                      className="text-gray-400 hover:text-red-500 transition p-1 cursor-pointer"
+                      title="Unpin Message"
+                    >
+                      <FiX className="text-sm" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1289,7 +1316,7 @@ export default function Chat() {
             >
               {Object.keys(groupedMessages).length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 text-sm">
-                  <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl mb-3 shadow-2xs">
+                  <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl mb-3 shadow-sm">
                     💬
                   </div>
                   <p className="font-medium text-gray-600">No messages yet</p>
@@ -1303,10 +1330,10 @@ export default function Chat() {
                     {/* Centered Date Separator Pill */}
                     <div className="flex items-center justify-center my-3">
                       <span
-                        className={`text-[11px] font-medium px-3.5 py-1 rounded-full shadow-2xs ${
+                        className={`text-[11px] font-medium px-3.5 py-1 rounded-full shadow-sm ${
                           darkMode
                             ? "bg-[#182229] text-[#8696a0]"
-                            : "bg-[#e9f0f8] text-[#4b6584]"
+                            : "bg-white/95 text-[#54656f] border border-black/[0.05]"
                         }`}
                       >
                         {dateKey}
@@ -1333,7 +1360,7 @@ export default function Chat() {
                             <Avatar
                               src={m.sender.profilePic}
                               name={m.sender.name}
-                              className="w-8 h-8 rounded-full object-cover shadow-2xs text-sm"
+                              className="w-8 h-8 rounded-full object-cover shadow-sm text-sm"
                             />
                           )}
 
@@ -1357,14 +1384,14 @@ export default function Chat() {
 
                             {/* Message Bubble */}
                             <div
-                              className={`relative px-4 py-2.5 rounded-2xl transition-all shadow-2xs border ${
+                              className={`relative px-4 py-2.5 rounded-2xl transition-all shadow-sm border ${
                                 isSelf
                                   ? darkMode
-                                    ? "bg-[#005c4b] text-[#e9edef] border-transparent rounded-tr-xs"
-                                    : "bg-[#dff7ea] text-gray-800 border-[#c6f0d7] rounded-tr-xs"
+                                    ? "bg-[#005c4b] text-[#e9edef] border-transparent rounded-tr-[4px]"
+                                    : "bg-[#d9fdd3] text-gray-900 border-black/[0.07] rounded-tr-[4px]"
                                   : darkMode
-                                    ? "bg-[#202c33] text-[#e9edef] border-transparent rounded-tl-xs"
-                                    : "bg-white text-gray-800 border-gray-200/70 rounded-tl-xs"
+                                    ? "bg-[#202c33] text-[#e9edef] border-transparent rounded-tl-[4px]"
+                                    : "bg-white text-gray-900 border-black/[0.08] rounded-tl-[4px]"
                               }`}
                             >
                               {/* Top Bar inside bubble: Reply preview badge + Quick Pin / 3-dots actions */}
@@ -1375,7 +1402,7 @@ export default function Chat() {
                                     onClick={() =>
                                       scrollToMessage(m.replyTo._id)
                                     }
-                                    className={`cursor-pointer rounded-lg p-2 mb-1.5 border-l-3 border-emerald-500 text-xs w-full transition-colors ${
+                                    className={`cursor-pointer rounded-lg p-2 mb-1.5 border-l-[3px] border-emerald-500 text-xs w-full transition-colors ${
                                       darkMode
                                         ? "bg-black/30 hover:bg-black/40 text-gray-300"
                                         : "bg-black/5 hover:bg-black/10 text-gray-600"
@@ -1646,7 +1673,7 @@ export default function Chat() {
                               )}
 
                               {/* Bottom Row: Reaction button & emoji chips + timestamp & ticks */}
-                              <div className="flex items-center justify-between gap-4 mt-2 pt-1 border-t border-black/5">
+                              <div className={`flex items-center justify-between gap-4 mt-2 pt-1 border-t ${darkMode ? "border-white/10" : "border-black/5"}`}>
                                 {/* Left: Reaction Trigger Button & Emojis */}
                                 <div className="relative message-reaction-container flex items-center gap-1.5">
                                   {!m.isDeleted && (
@@ -1680,7 +1707,7 @@ export default function Chat() {
                                           onClick={() =>
                                             handleReaction(m, emoji)
                                           }
-                                          className={`text-base hover:scale-130 transition-transform p-1 rounded-full cursor-pointer ${
+                                          className={`text-base hover:scale-125 transition-transform p-1 rounded-full cursor-pointer ${
                                             darkMode
                                               ? "hover:bg-[#111b21]"
                                               : "hover:bg-gray-100"
@@ -1850,155 +1877,159 @@ export default function Chat() {
               </button>
             )}
 
-            {/* WHATSAPP-STYLE INPUT BAR (reply/edit preview integrated inside the container) */}
+            {/* WHATSAPP-STYLE INPUT SECTION (Floating Rounded Pill + Preview) */}
             <div
-              className={`p-2.5 sm:p-4 border-t shrink-0 transition-colors duration-200 ${
-                darkMode ? "bg-[#202c33] border-[#222e35]" : "bg-white border-gray-200/80"
+              className={`p-2.5 sm:p-3.5 border-t shrink-0 transition-colors duration-200 ${
+                darkMode ? "bg-[#202c33] border-[#222e35]" : "bg-[#efeae2] border-black/[0.04]"
               }`}
             >
-              <div
-                className={`rounded-2xl border transition-all shadow-2xs overflow-hidden ${
-                  darkMode
-                    ? "bg-[#2a3942] border-transparent"
-                    : "bg-[#f8fafc] border-gray-200/90 focus-within:border-emerald-500/80 focus-within:ring-2 focus-within:ring-emerald-500/20"
-                }`}
-              >
-                {/* REPLY / EDIT PREVIEW (WhatsApp style — inside the input container) */}
-                {(replyingTo || editingMessage) && (
-                  <div
-                    className={`flex items-start gap-3 px-3.5 pt-3 pb-2 border-b animate-fadeIn ${
-                      darkMode ? "border-[#222e35]" : "border-gray-200/80"
+              {/* REPLY / EDIT PREVIEW (Floating card above rounded input pill) */}
+              {(replyingTo || editingMessage) && (
+                <div
+                  className={`mb-2 px-4 py-2.5 rounded-2xl border shadow-sm flex items-start justify-between gap-3 animate-fadeIn ${
+                    darkMode
+                      ? "bg-[#2a3942] border-transparent text-[#e9edef]"
+                      : "bg-white border-black/[0.06] text-gray-800"
+                  }`}
+                >
+                  {/* Colored vertical bar */}
+                  <span
+                    className={`w-1 self-stretch rounded-full shrink-0 mt-0.5 ${
+                      editingMessage ? "bg-amber-500" : "bg-emerald-500"
                     }`}
-                  >
-                    {/* Colored vertical bar */}
-                    <span
-                      className={`w-1 self-stretch rounded-full shrink-0 mt-0.5 ${
-                        editingMessage ? "bg-amber-500" : "bg-emerald-500"
-                      }`}
-                    />
+                  />
 
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className={`text-[11px] font-semibold leading-tight ${
-                          darkMode ? "text-emerald-400" : "text-emerald-700"
-                        }`}
-                      >
-                        {replyingTo ? (
-                          <>
-                            Replying to{" "}
-                            {replyingTo.sender._id === user.user._id
-                              ? "You"
-                              : replyingTo.sender.name}
-                            :
-                          </>
-                        ) : (
-                          "Editing message"
-                        )}
-                      </div>
-                      <div
-                        className={`text-xs truncate mt-0.5 ${
-                          darkMode ? "text-gray-400" : "text-gray-600"
-                        }`}
-                      >
-                        {replyingTo
-                          ? replyingTo.content || "📄 Attachment"
-                          : editingMessage.content}
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setReplyingTo(null);
-                        setEditingMessage(null);
-                        setMessage("");
-                      }}
-                      className={`p-1 rounded-full transition cursor-pointer shrink-0 ${
-                        darkMode
-                          ? "hover:bg-[#111b21] text-gray-400 hover:text-gray-200"
-                          : "hover:bg-gray-200/70 text-gray-500 hover:text-gray-800"
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className={`text-[11px] font-semibold leading-tight ${
+                        editingMessage
+                          ? darkMode ? "text-amber-400" : "text-amber-600"
+                          : darkMode ? "text-emerald-400" : "text-emerald-600"
                       }`}
-                      title="Cancel"
                     >
-                      <FiX className="text-sm" />
-                    </button>
+                      {replyingTo ? (
+                        <>
+                          Replying to{" "}
+                          {replyingTo.sender._id === user.user._id
+                            ? "You"
+                            : replyingTo.sender.name}
+                          :
+                        </>
+                      ) : (
+                        "Editing message"
+                      )}
+                    </div>
+                    <div
+                      className={`text-xs truncate mt-0.5 ${
+                        darkMode ? "text-gray-400" : "text-gray-600"
+                      }`}
+                    >
+                      {replyingTo
+                        ? replyingTo.content || "📄 Attachment"
+                        : editingMessage.content}
+                    </div>
                   </div>
-                )}
 
-                {/* Input row */}
-                <div className="flex items-center gap-2 px-3 py-1.5">
-                  {/* File Attachment Button (left, next to emoji — WhatsApp style) */}
                   <button
-                    type="button"
-                    onClick={() => chatFileRef.current.click()}
-                    className={`p-1.5 rounded-full transition ${
+                    onClick={() => {
+                      setReplyingTo(null);
+                      setEditingMessage(null);
+                      setMessage("");
+                    }}
+                    className={`p-1 rounded-full transition cursor-pointer shrink-0 ${
                       darkMode
-                        ? "text-gray-400 hover:text-emerald-400 hover:bg-gray-700/50"
-                        : "text-gray-500 hover:text-emerald-600 hover:bg-gray-100"
+                        ? "hover:bg-[#111b21] text-gray-400 hover:text-gray-200"
+                        : "hover:bg-gray-100 text-gray-500 hover:text-gray-800"
                     }`}
-                    title="Attach file"
+                    title="Cancel"
                   >
-                    <FiPaperclip className="text-lg" />
-                  </button>
-
-                  {/* Hidden File Input */}
-                  <input
-                    type="file"
-                    ref={chatFileRef}
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (!file) return;
-                      uploadFile(file);
-                      if (e.target) e.target.value = "";
-                    }}
-                  />
-
-                  {/* Emoji Picker Button */}
-                  <button
-                    type="button"
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className={`emoji-toggle-button p-1.5 rounded-full transition text-gray-400 hover:text-amber-500 ${
-                      darkMode ? "hover:bg-gray-700/50" : "hover:bg-gray-200/50"
-                    }`}
-                    title="Insert emoji"
-                  >
-                    <FiSmile className="text-lg" />
-                  </button>
-
-                  {/* Text Input Field */}
-                  <input
-                    ref={messageInputRef}
-                    value={message}
-                    onChange={handleTyping}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        sendMessage();
-                      }
-                    }}
-                    className={`flex-1 bg-transparent border-none px-2 py-1 text-sm placeholder-gray-400 focus:outline-none ${
-                      darkMode ? "text-[#e9edef]" : "text-gray-800"
-                    }`}
-                    placeholder="Type a message..."
-                  />
-
-                  {/* Send Button (paper plane — same as WhatsApp) */}
-                  <button
-                    type="button"
-                    onClick={() => sendMessage()}
-                    disabled={!message.trim()}
-                    className={`p-2 rounded-full transition-all flex items-center justify-center ${
-                      message.trim()
-                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:scale-105"
-                        : darkMode
-                          ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                          : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    }`}
-                    title={editingMessage ? "Save Edit" : "Send"}
-                  >
-                    <MdSend className="text-base" />
+                    <FiX className="text-sm" />
                   </button>
                 </div>
+              )}
+
+              {/* WhatsApp Rounded-Full Input Pill */}
+              <div
+                className={`rounded-full border transition-all shadow-[0_1px_2px_rgba(0,0,0,0.06)] flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 ${
+                  darkMode
+                    ? "bg-[#2a3942] border-transparent text-[#e9edef] focus-within:ring-1 focus-within:ring-emerald-500/40"
+                    : "bg-white border-black/[0.06] text-gray-800 focus-within:border-emerald-500/60 focus-within:ring-1 focus-within:ring-emerald-500/30"
+                }`}
+              >
+                {/* File Attachment Button (left, WhatsApp style) */}
+                <button
+                  type="button"
+                  onClick={() => chatFileRef.current.click()}
+                  className={`p-1.5 rounded-full transition cursor-pointer ${
+                    darkMode
+                      ? "text-gray-400 hover:text-emerald-400 hover:bg-gray-700/50"
+                      : "text-gray-500 hover:text-emerald-600 hover:bg-gray-100"
+                  }`}
+                  title="Attach file"
+                >
+                  <FiPaperclip className="text-lg sm:text-xl" />
+                </button>
+
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={chatFileRef}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    uploadFile(file);
+                    if (e.target) e.target.value = "";
+                  }}
+                />
+
+                {/* Emoji Picker Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className={`emoji-toggle-button p-1.5 rounded-full transition cursor-pointer ${
+                    darkMode
+                      ? "text-gray-400 hover:text-amber-400 hover:bg-gray-700/50"
+                      : "text-gray-500 hover:text-amber-500 hover:bg-gray-100"
+                  }`}
+                  title="Insert emoji"
+                >
+                  <FiSmile className="text-lg sm:text-xl" />
+                </button>
+
+                {/* Text Input Field */}
+                <input
+                  ref={messageInputRef}
+                  value={message}
+                  onChange={handleTyping}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  className={`flex-1 bg-transparent border-none px-2 py-1 text-sm sm:text-[15px] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none min-w-0 ${
+                    darkMode ? "text-[#e9edef]" : "text-gray-800"
+                  }`}
+                  placeholder="Type a message"
+                />
+
+                {/* Send Button */}
+                <button
+                  type="button"
+                  onClick={() => sendMessage()}
+                  disabled={!message.trim()}
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                    message.trim()
+                      ? "bg-[#00a884] hover:bg-[#008f6f] text-white shadow-md hover:scale-105 active:scale-95 cursor-pointer"
+                      : darkMode
+                        ? "text-gray-500 cursor-not-allowed"
+                        : "text-gray-400 cursor-not-allowed"
+                  }`}
+                  title={editingMessage ? "Save Edit" : "Send message"}
+                >
+                  <MdSend className="text-base sm:text-lg ml-0.5" />
+                </button>
               </div>
             </div>
           </>

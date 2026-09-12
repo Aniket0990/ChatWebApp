@@ -117,7 +117,7 @@ export default function Sidebar({
           }`}
         >
           <div
-            className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl border transition-all shadow-2xs ${
+            className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl border transition-all shadow-sm ${
               darkMode
                 ? "bg-[#202c33] border-transparent text-[#e9edef] focus-within:bg-[#202c33]"
                 : "bg-[#f0f2f5] border-transparent text-gray-800 focus-within:border-emerald-500/40 focus-within:bg-white"
@@ -153,10 +153,10 @@ export default function Sidebar({
           className={`flex-1 overflow-y-auto divide-y transition-colors duration-200 ${
             darkMode
               ? "bg-[#111b21] divide-[#202c33]"
-              : "bg-white divide-gray-50"
+              : "bg-white divide-gray-100"
           }`}
         >
-          <div className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
+          <div className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
             Direct Messages
           </div>
 
@@ -222,14 +222,14 @@ export default function Sidebar({
                           : "bg-emerald-50/80 border-l-4 border-emerald-600"
                         : darkMode
                           ? "hover:bg-[#202c33]"
-                          : "hover:bg-gray-50/80"
+                          : "hover:bg-gray-100"
                     }`}
                   >
                     <div className="relative shrink-0">
                       <Avatar
                         src={u.profilePic}
                         name={u.name}
-                        className="w-12 h-12 rounded-full object-cover shadow-2xs text-xl"
+                        className="w-12 h-12 rounded-full object-cover shadow-sm text-xl"
                       />
                       <span
                         className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 ${
@@ -248,7 +248,7 @@ export default function Sidebar({
                       {/* Row 1: name + time */}
                       <div className="flex items-center justify-between gap-2">
                         <p
-                          className={`text-sm truncate leading-tight ${
+                          className={`text-sm font-medium truncate leading-tight ${
                             isSelected
                               ? darkMode
                                 ? "text-emerald-400 font-semibold"
@@ -280,7 +280,7 @@ export default function Sidebar({
                       {/* Row 2: preview + unread badge */}
                       <div className="flex items-center justify-between gap-2 mt-1">
                         {u.lastMessage ? (
-                          <p className="text-xs text-gray-400 truncate leading-tight flex-1">
+                          <p className="text-xs text-gray-500 truncate leading-tight flex-1">
                             {u.lastMessage.isMine && (
                               <span className="text-gray-500 font-medium">
                                 You:{" "}
@@ -291,7 +291,7 @@ export default function Sidebar({
                               : u.lastMessage.content}
                           </p>
                         ) : (
-                          <p className="text-xs text-gray-400 truncate leading-tight flex-1">
+                          <p className="text-xs text-gray-500 truncate leading-tight flex-1">
                             {u.isOnline ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                                 Online

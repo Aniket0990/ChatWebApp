@@ -498,7 +498,7 @@ export default function Profile({
                   setPasswordSuccess("");
                   setShowPasswordModal(true);
                 }}
-                className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-2xs cursor-pointer ${
+                className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-sm cursor-pointer ${
                   darkMode
                     ? "border-[#2a3942] text-gray-200 hover:border-emerald-500 hover:text-emerald-400 hover:bg-[#202c33]"
                     : "border-gray-200 text-gray-700 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50/40 bg-white"
@@ -512,7 +512,7 @@ export default function Profile({
               <button
                 type="button"
                 onClick={() => setShowLogoutConfirm(true)}
-                className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-2xs cursor-pointer ${
+                className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-sm cursor-pointer ${
                   darkMode
                     ? "border-red-900/50 text-red-400 hover:bg-red-950/20"
                     : "border-red-200 text-red-600 hover:bg-red-50 bg-white"
