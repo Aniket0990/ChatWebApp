@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
 import Avatar from "./Avatar";
 import Profile from "./Profile";
@@ -10,7 +10,9 @@ import {
   FiMessageCircle,
   FiUserPlus,
 } from "react-icons/fi";
-import axios from "../utils/axios";
+import { useQueryClient } from "@tanstack/react-query";
+import { useReceivedRequests } from "../hooks/useConnections";
+import { queryKeys } from "../lib/queryClient";
 
 export default function Sidebar({
   users = [],
@@ -25,24 +27,17 @@ export default function Sidebar({
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [showProfileSidebar, setShowProfileSidebar] = useState(false);
   const [showConnectionPanel, setShowConnectionPanel] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
+  // Pending request count is derived from the shared received-requests query,
+  // so it stays in sync with the ConnectionPanel without a second network call.
+  const { data: receivedRequests = [] } = useReceivedRequests();
+  const pendingCount = receivedRequests.length;
+  const queryClient = useQueryClient();
 
-  // Fetch pending request count on mount and after panel closes
-  const fetchPendingCount = async () => {
+  // Refresh the badge/list after the connection panel closes.
+  const fetchPendingCount = () => {
     if (!user?.token) return;
-    try {
-      const { data } = await axios.get("/connection/received", {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      setPendingCount(data.length);
-    } catch {
-      // silently ignore
-    }
+    queryClient.invalidateQueries({ queryKey: queryKeys.receivedRequests });
   };
-
-  useEffect(() => {
-    fetchPendingCount();
-  }, [user?.token]);
 
   // Sidebar list time: today -> HH:MM, yesterday -> "Yesterday", else date
   const formatListTime = (dateString) => {

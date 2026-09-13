@@ -169,6 +169,11 @@ exports.updateProfile = async (req, res) => {
       { new: true },
     ).select("-password");
 
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("user_profile_updated", user);
+    }
+
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: "Failed to update profile" });

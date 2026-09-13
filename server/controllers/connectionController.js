@@ -1,6 +1,45 @@
 const Connection = require("../models/Connection");
 const User = require("../models/User");
+const Chat = require("../models/Chat");
+const Message = require("../models/Message");
+const cloudinary = require("../config/cloudinary");
+const fs = require("fs");
+const path = require("path");
 const mongoose = require("mongoose");
+
+// Helper to remove attachment files (local disk / Cloudinary)
+const deleteAttachmentFile = async (fileUrl) => {
+  if (!fileUrl) return;
+  try {
+    if (fileUrl.includes("/api/upload/file/")) {
+      const filename = decodeURIComponent(
+        fileUrl.split("/api/upload/file/")[1] || "",
+      );
+      if (filename) {
+        const safeName = path.basename(filename);
+        const filePath = path.join(
+          __dirname,
+          "..",
+          "uploads",
+          "docs",
+          safeName,
+        );
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+    } else if (fileUrl.includes("res.cloudinary.com")) {
+      const parts = fileUrl.split("/");
+      const fileWithExt = parts[parts.length - 1];
+      const publicId = fileWithExt.split(".")[0];
+      if (publicId) {
+        await cloudinary.uploader.destroy(publicId);
+      }
+    }
+  } catch (err) {
+    console.error("Error deleting attachment file:", err);
+  }
+};
 
 // POST /api/connection/send/:receiverId
 // Send a connection request to another user
@@ -21,6 +60,7 @@ exports.sendRequest = async (req, res) => {
       ],
     });
 
+    let connection;
     if (existing) {
       if (existing.status === "accepted") {
         return res.status(400).json({ message: "Already connected" });
@@ -33,13 +73,22 @@ exports.sendRequest = async (req, res) => {
       existing.sender = senderId;
       existing.receiver = receiverId;
       await existing.save();
-      return res.json(existing);
+      connection = existing;
+    } else {
+      connection = await Connection.create({
+        sender: senderId,
+        receiver: receiverId,
+      });
     }
 
-    const connection = await Connection.create({
-      sender: senderId,
-      receiver: receiverId,
-    });
+    // Emit real-time notification to the receiver
+    const io = req.app.get("io");
+    if (io) {
+      io.to(receiverId.toString()).emit("connection_request_received", {
+        senderId,
+        connectionId: connection._id,
+      });
+    }
 
     res.status(201).json(connection);
   } catch (error) {
@@ -65,6 +114,19 @@ exports.acceptRequest = async (req, res) => {
     connection.status = "accepted";
     await connection.save();
 
+    // Emit real-time socket events to both sender and receiver
+    const io = req.app.get("io");
+    if (io) {
+      io.to(connection.sender.toString()).emit("connection_accepted", {
+        userId: connection.receiver.toString(),
+        connectionId: connection._id,
+      });
+      io.to(connection.receiver.toString()).emit("connection_accepted", {
+        userId: connection.sender.toString(),
+        connectionId: connection._id,
+      });
+    }
+
     res.json(connection);
   } catch (error) {
     console.error("acceptRequest error:", error);
@@ -89,6 +151,19 @@ exports.declineRequest = async (req, res) => {
     connection.status = "declined";
     await connection.save();
 
+    // Emit real-time socket events to both sender and receiver
+    const io = req.app.get("io");
+    if (io) {
+      io.to(connection.sender.toString()).emit("connection_declined", {
+        userId: connection.receiver.toString(),
+        connectionId: connection._id,
+      });
+      io.to(connection.receiver.toString()).emit("connection_declined", {
+        userId: connection.sender.toString(),
+        connectionId: connection._id,
+      });
+    }
+
     res.json(connection);
   } catch (error) {
     console.error("declineRequest error:", error);
@@ -110,11 +185,88 @@ exports.cancelRequest = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    const receiverId = connection.receiver.toString();
+    const connectionId = connection._id;
     await connection.deleteOne();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(receiverId).emit("connection_request_cancelled", {
+        senderId: req.user.id,
+        connectionId,
+      });
+    }
+
     res.json({ message: "Request cancelled" });
   } catch (error) {
     console.error("cancelRequest error:", error);
     res.status(500).json({ message: "Failed to cancel request" });
+  }
+};
+
+// DELETE /api/connection/remove/:connectionId
+// Remove an accepted connection between two users and purge their chats & attachments
+exports.removeConnection = async (req, res) => {
+  try {
+    const myId = req.user.id;
+    const { connectionId } = req.params;
+
+    const connection = await Connection.findById(connectionId);
+
+    if (!connection) {
+      return res.status(404).json({ message: "Connection not found" });
+    }
+
+    if (
+      connection.sender.toString() !== myId &&
+      connection.receiver.toString() !== myId
+    ) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const otherUserId =
+      connection.sender.toString() === myId
+        ? connection.receiver.toString()
+        : connection.sender.toString();
+
+    // 1. Find 1:1 chat between these two users
+    const chats = await Chat.find({
+      users: { $all: [myId, otherUserId] },
+      isGroupChat: false,
+    });
+
+    // 2. For each chat, delete attached files from disk/cloud, then remove messages and the chat
+    for (const chat of chats) {
+      const messages = await Message.find({ chat: chat._id }).select("fileUrl");
+      for (const msg of messages) {
+        if (msg.fileUrl) {
+          await deleteAttachmentFile(msg.fileUrl);
+        }
+      }
+      await Message.deleteMany({ chat: chat._id });
+      await Chat.deleteOne({ _id: chat._id });
+    }
+
+    // 3. Delete the connection record from DB
+    await connection.deleteOne();
+
+    // 4. Emit real-time socket events to both parties
+    const io = req.app.get("io");
+    if (io) {
+      io.to(otherUserId).emit("connection_removed", {
+        userId: myId,
+        connectionId,
+      });
+      io.to(myId).emit("connection_removed", {
+        userId: otherUserId,
+        connectionId,
+      });
+    }
+
+    res.json({ message: "Connection, chats, and attachments removed successfully" });
+  } catch (error) {
+    console.error("removeConnection error:", error);
+    res.status(500).json({ message: "Failed to remove connection" });
   }
 };
 

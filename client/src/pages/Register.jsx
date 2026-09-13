@@ -1,16 +1,18 @@
 import { useState } from "react";
-import axios from "../utils/axios";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FiUser, FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import { IoChatbubbleEllipses } from "react-icons/io5";
+import { useRegister } from "../hooks/useAuthMutations";
 
 export default function Register() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  // Manual loading state is gone: the mutation tracks pending/error for us.
+  const register = useRegister();
+  const loading = register.isPending;
 
   const passwordMismatch = confirmPassword.length > 0 && form.password !== confirmPassword;
   const navigate = useNavigate();
@@ -33,8 +35,7 @@ export default function Register() {
     }
 
     try {
-      setLoading(true);
-      await axios.post("/auth/register", {
+      await register.mutateAsync({
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
@@ -47,8 +48,6 @@ export default function Register() {
           ? err.response.data
           : err.response?.data?.message || "Registration failed",
       );
-    } finally {
-      setLoading(false);
     }
   };
 

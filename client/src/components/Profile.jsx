@@ -1,9 +1,16 @@
 import { useContext, useState, useRef } from "react";
-import axios from "../utils/axios";
+import { useMutation } from "@tanstack/react-query";
 import { socket } from "../socket/socket";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import {
+  changePassword,
+  updateProfile,
+  uploadFile,
+  useChangePassword,
+  useUpdateProfile,
+} from "../hooks/useAuthMutations";
 import Avatar from "./Avatar";
 import {
   FiArrowLeft,
@@ -26,7 +33,6 @@ export default function Profile({
   const { user, setUser, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [editingAbout, setEditingAbout] = useState(false);
@@ -45,6 +51,18 @@ export default function Profile({
 
   const profileInputRef = useRef(null);
 
+  // Photo upload is a two-step flow (upload file, then patch the profile),
+  // so it lives in one mutation. Everything else reuses the shared hooks.
+  const uploadProfileImage = useMutation({
+    mutationFn: async (file) => {
+      const url = await uploadFile(file);
+      return updateProfile({ profilePic: url });
+    },
+  });
+  const saveProfile = useUpdateProfile();
+  const savePassword = useChangePassword();
+  const uploadingPhoto = uploadProfileImage.isPending;
+
   if (!user) return null;
 
   const handleImageClick = () => {
@@ -57,27 +75,12 @@ export default function Profile({
     const file = e.target.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      setUploadingPhoto(true);
-      const { data } = await axios.post("/upload", formData, {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      const res = await axios.put(
-        "/auth/update-profile",
-        { profilePic: data.url },
-        { headers: { Authorization: `Bearer ${user.token}` } },
-      );
+      const data = await uploadProfileImage.mutateAsync(file);
 
       const updatedUser = {
         ...user,
-        user: res.data,
+        user: data,
       };
       setUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -86,7 +89,6 @@ export default function Profile({
       console.error("Upload failed", err);
       toast.error("Failed to upload photo");
     } finally {
-      setUploadingPhoto(false);
       if (e.target) e.target.value = "";
     }
   };
@@ -94,13 +96,9 @@ export default function Profile({
   const handleSaveName = async () => {
     if (!nameInput.trim()) return;
     try {
-      const { data } = await axios.put(
-        "/auth/update-profile",
-        { name: nameInput.trim() },
-        { headers: { Authorization: `Bearer ${user.token}` } },
-      );
+      const data = await saveProfile.mutateAsync({ name: nameInput.trim() });
 
-      const updatedUser = { ...user, user: { ...user.user, name: data.name } };
+      const updatedUser = { ...user, user: { ...user.user, ...data } };
       setUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setEditingName(false);
@@ -114,13 +112,9 @@ export default function Profile({
   const handleSaveAbout = async () => {
     if (!aboutInput.trim()) return;
     try {
-      const { data } = await axios.put(
-        "/auth/update-profile",
-        { about: aboutInput.trim() },
-        { headers: { Authorization: `Bearer ${user.token}` } },
-      );
+      const data = await saveProfile.mutateAsync({ about: aboutInput.trim() });
 
-      const updatedUser = { ...user, user: { ...user.user, about: data.about } };
+      const updatedUser = { ...user, user: { ...user.user, ...data } };
       setUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setEditingAbout(false);
@@ -147,11 +141,7 @@ export default function Profile({
     }
 
     try {
-      await axios.put(
-        "/auth/change-password",
-        { currentPassword, newPassword },
-        { headers: { Authorization: `Bearer ${user.token}` } },
-      );
+      await savePassword.mutateAsync({ currentPassword, newPassword });
 
       setPasswordSuccess("Password updated successfully!");
       setCurrentPassword("");

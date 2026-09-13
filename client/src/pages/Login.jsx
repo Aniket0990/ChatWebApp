@@ -1,18 +1,24 @@
 import { useState, useContext } from "react";
-import axios from "../utils/axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { AuthContext } from "../context/AuthContext";
+import { useLogin } from "../hooks/useAuthMutations";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import { IoChatbubbleEllipses } from "react-icons/io5";
+import { socket } from "../socket/socket";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const { setUser } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Manual loading state is gone: the mutation tracks pending/error for us.
+  const login = useLogin();
+  const loading = login.isPending;
+  const queryClient = useQueryClient();
 
   const isDark = localStorage.getItem("theme") === "dark";
 
@@ -23,13 +29,18 @@ export default function Login() {
       return;
     }
     try {
-      setLoading(true);
-      const { data } = await axios.post("/auth/login", {
+      const data = await login.mutateAsync({
         email: email.trim(),
         password,
       });
+      // Login is the identity boundary — drop any cached data from a previous
+      // session so the new user never sees another account's sidebar/chat data.
+      queryClient.clear();
       localStorage.setItem("user", JSON.stringify(data));
       setUser(data);
+      if (!socket.connected) {
+        socket.connect();
+      }
       toast.success("Welcome back!");
       navigate("/chat");
     } catch (err) {
@@ -38,8 +49,6 @@ export default function Login() {
           ? err.response.data
           : err.response?.data?.message || "Invalid Credentials",
       );
-    } finally {
-      setLoading(false);
     }
   };
 

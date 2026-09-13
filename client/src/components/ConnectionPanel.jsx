@@ -1,14 +1,21 @@
-import { useState, useEffect, useContext, useCallback } from "react";
-import { AuthContext } from "../context/AuthContext";
+import { useState, useEffect } from "react";
 import Avatar from "./Avatar";
-import axios from "../utils/axios";
-import { toast } from "react-toastify";
+import {
+  useAcceptConnection,
+  useConnections,
+  useDeclineConnection,
+  useReceivedRequests,
+  useRemoveConnection,
+  useSearchUsers,
+  useSendConnectionRequest,
+} from "../hooks/useConnections";
 import {
   FiArrowLeft,
   FiSearch,
   FiX,
   FiUserCheck,
   FiUserPlus,
+  FiUserX,
   FiUsers,
   FiCheck,
   FiXCircle,
@@ -28,145 +35,75 @@ export default function ConnectionPanel({
   onConnectionAccepted, // callback so Chat.jsx can refresh sidebar users
   onSelectUser, // callback to open chat with connected user
 }) {
-  const { user } = useContext(AuthContext);
-
   const [activeTab, setActiveTab] = useState("all");
-
-  // All Connections tab
-  const [connections, setConnections] = useState([]);
-  const [loadingAll, setLoadingAll] = useState(false);
+  const [userToRemove, setUserToRemove] = useState(null);
 
   // Send Request tab
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [sendingTo, setSendingTo] = useState(null);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
 
-  // Received tab
-  const [receivedRequests, setReceivedRequests] = useState([]);
-  const [loadingReceived, setLoadingReceived] = useState(false);
-  const [processingId, setProcessingId] = useState(null);
+  // ---------- SERVER STATE (React Query) ----------
+  // Queries are scoped to the open panel / active tab so we never fetch tabs
+  // the user hasn't opened. The received-requests query is shared with the
+  // sidebar badge, so the badge and the list stay in sync from one request.
+  const { data: connections = [], isLoading: loadingAll } = useConnections(
+    isOpen && activeTab === "all",
+  );
+  const { data: receivedRequests = [], isLoading: loadingReceived } =
+    useReceivedRequests(isOpen);
+  const { data: searchResults = [], isFetching: searching } = useSearchUsers(
+    debouncedQuery,
+    { enabled: isOpen && activeTab === "send" },
+  );
 
-  const authHeader = { Authorization: `Bearer ${user?.token}` };
+  // ---------- MUTATIONS ----------
+  const sendMutation = useSendConnectionRequest();
+  const acceptMutation = useAcceptConnection();
+  const declineMutation = useDeclineConnection();
+  const removeMutation = useRemoveConnection();
 
-  // ---------- FETCH helpers ----------
+  // Per-row pending state comes from the mutation itself instead of extra state.
+  const sendingTo = sendMutation.isPending ? sendMutation.variables : null;
+  const processingId = acceptMutation.isPending
+    ? acceptMutation.variables?.connectionId
+    : declineMutation.isPending
+      ? declineMutation.variables
+      : null;
 
-  const fetchConnections = useCallback(async () => {
-    if (!user?.token) return;
-    setLoadingAll(true);
-    try {
-      const { data } = await axios.get("/connection/all", {
-        headers: authHeader,
-      });
-      setConnections(data);
-    } catch {
-      toast.error("Failed to load connections");
-    } finally {
-      setLoadingAll(false);
-    }
-  }, [user?.token]);
+  // ---------- EFFECTS ----------
 
-  const fetchReceived = useCallback(async () => {
-    if (!user?.token) return;
-    setLoadingReceived(true);
-    try {
-      const { data } = await axios.get("/connection/received", {
-        headers: authHeader,
-      });
-      setReceivedRequests(data);
-    } catch {
-      toast.error("Failed to load requests");
-    } finally {
-      setLoadingReceived(false);
-    }
-  }, [user?.token]);
-
-  // Refresh on open / tab change
+  // Debounce the search box before it hits the API.
   useEffect(() => {
-    if (!isOpen) return;
-    fetchReceived(); // always fetch so badge count is accurate
-    if (activeTab === "all") fetchConnections();
-    if (activeTab === "send") {
-      setSearchQuery("");
-      setSearchResults([]);
-    }
-  }, [isOpen, activeTab]);
-
-  // ---------- SEARCH (debounced) ----------
-  useEffect(() => {
-    if (activeTab !== "send") return;
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    const t = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const { data } = await axios.get(
-          `/connection/search?q=${encodeURIComponent(searchQuery)}`,
-          { headers: authHeader }
-        );
-        setSearchResults(data);
-      } catch {
-        toast.error("Search failed");
-      } finally {
-        setSearching(false);
-      }
-    }, 400);
+    const t = setTimeout(() => setDebouncedQuery(searchQuery), 400);
     return () => clearTimeout(t);
-  }, [searchQuery, activeTab]);
+  }, [searchQuery]);
 
   // ---------- ACTIONS ----------
 
-  const sendRequest = async (receiverId) => {
-    setSendingTo(receiverId);
-    try {
-      await axios.post(`/connection/send/${receiverId}`, {}, { headers: authHeader });
-      toast.success("Connection request sent!");
-      // Update local state to reflect pending status
-      setSearchResults((prev) =>
-        prev.map((u) =>
-          u._id === receiverId
-            ? {
-                ...u,
-                connectionStatus: { status: "pending", isSender: true },
-              }
-            : u
-        )
-      );
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to send request");
-    } finally {
-      setSendingTo(null);
+  // Reset the search box when (re)entering the "Send Request" tab or closing.
+  const selectTab = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === "send") {
+      setSearchQuery("");
+      setDebouncedQuery("");
     }
   };
 
-  const acceptRequest = async (connectionId, senderName) => {
-    setProcessingId(connectionId);
-    try {
-      await axios.put(`/connection/accept/${connectionId}`, {}, { headers: authHeader });
-      toast.success(`Connected with ${senderName}!`);
-      setReceivedRequests((prev) => prev.filter((r) => r._id !== connectionId));
-      onConnectionAccepted?.(); // refresh sidebar user list
-    } catch {
-      toast.error("Failed to accept request");
-    } finally {
-      setProcessingId(null);
-    }
+  const handleClose = () => {
+    setSearchQuery("");
+    setDebouncedQuery("");
+    onClose?.();
   };
 
-  const declineRequest = async (connectionId) => {
-    setProcessingId(connectionId);
-    try {
-      await axios.put(`/connection/decline/${connectionId}`, {}, { headers: authHeader });
-      toast.info("Request declined");
-      setReceivedRequests((prev) => prev.filter((r) => r._id !== connectionId));
-    } catch {
-      toast.error("Failed to decline request");
-    } finally {
-      setProcessingId(null);
-    }
-  };
+  const sendRequest = (receiverId) => sendMutation.mutate(receiverId);
+
+  const acceptRequest = (connectionId, senderName) =>
+    acceptMutation.mutate(
+      { connectionId, senderName },
+      { onSettled: () => onConnectionAccepted?.() },
+    );
+
+  const declineRequest = (connectionId) => declineMutation.mutate(connectionId);
 
   // ---------- RENDER HELPERS ----------
 
@@ -194,7 +131,7 @@ export default function ConnectionPanel({
         }`}
       >
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className={`p-1.5 rounded-full transition cursor-pointer ${
             dm
               ? "text-gray-300 hover:text-white hover:bg-white/10"
@@ -222,7 +159,7 @@ export default function ConnectionPanel({
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => selectTab(tab.id)}
               className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-[10px] font-semibold uppercase tracking-wider transition-colors cursor-pointer relative ${
                 isActive
                   ? dm
@@ -297,15 +234,32 @@ export default function ConnectionPanel({
                       <p className={`text-sm font-medium truncate ${textPrimary}`}>{c.name}</p>
                       <p className={`text-xs truncate ${textSub}`}>{c.email}</p>
                     </div>
-                    <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        dm
-                          ? "bg-emerald-900/40 text-emerald-400"
-                          : "bg-emerald-50 text-emerald-700"
-                      }`}
-                    >
-                      Connected
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          dm
+                            ? "bg-emerald-900/40 text-emerald-400"
+                            : "bg-emerald-50 text-emerald-700"
+                        }`}
+                      >
+                        Connected
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUserToRemove(c);
+                        }}
+                        className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                          dm
+                            ? "text-gray-400 hover:text-rose-400 hover:bg-rose-500/15"
+                            : "text-gray-400 hover:text-rose-600 hover:bg-rose-50"
+                        }`}
+                        title={`Remove ${c.name} from connections`}
+                      >
+                        <FiUserX className="text-base" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -513,6 +467,104 @@ export default function ConnectionPanel({
           </div>
         )}
       </div>
+
+      {/* REMOVE CONNECTION CONFIRMATION POPUP */}
+      {userToRemove && (
+        <div
+          onClick={() => !removeMutation.isPending && setUserToRemove(null)}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl border transform transition-all animate-scaleUp ${
+              dm
+                ? "bg-[#111b21] border-[#222e35] text-[#e9edef]"
+                : "bg-white border-gray-100 text-gray-800"
+            }`}
+          >
+            <div className="flex flex-col items-center text-center">
+              {/* Icon Badge */}
+              <div className="w-12 h-12 rounded-full bg-rose-500/15 text-rose-500 flex items-center justify-center mb-3.5">
+                <FiUserX className="text-2xl" />
+              </div>
+
+              <h3 className="text-base font-bold">Remove Connection</h3>
+              <p className={`text-xs mt-1.5 mb-4 leading-relaxed ${textSub}`}>
+                Are you sure you want to remove{" "}
+                <span className="font-semibold text-rose-500">
+                  {userToRemove.name}
+                </span>{" "}
+                from your connections? They will no longer appear in your active chats or direct messages.
+              </p>
+
+              {/* User Card Preview */}
+              <div
+                className={`w-full flex items-center gap-3 p-3 rounded-xl mb-5 ${
+                  dm ? "bg-[#202c33]" : "bg-gray-50 border border-gray-100"
+                }`}
+              >
+                <Avatar
+                  src={userToRemove.profilePic}
+                  name={userToRemove.name}
+                  className="w-10 h-10 rounded-full object-cover text-base shrink-0"
+                />
+                <div className="text-left min-w-0 flex-1">
+                  <p className={`text-sm font-semibold truncate ${textPrimary}`}>
+                    {userToRemove.name}
+                  </p>
+                  <p className={`text-xs truncate ${textSub}`}>
+                    {userToRemove.email}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 w-full">
+                <button
+                  type="button"
+                  disabled={removeMutation.isPending}
+                  onClick={() => setUserToRemove(null)}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
+                    dm
+                      ? "border-[#2a3942] text-gray-300 hover:bg-[#202c33]"
+                      : "border-gray-200 text-gray-700 hover:bg-gray-100"
+                  } disabled:opacity-50`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={removeMutation.isPending}
+                  onClick={() => {
+                    removeMutation.mutate(
+                      {
+                        connectionId: userToRemove.connectionId,
+                        userName: userToRemove.name,
+                      },
+                      {
+                        onSettled: () => {
+                          setUserToRemove(null);
+                          onConnectionAccepted?.();
+                        },
+                      },
+                    );
+                  }}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+                >
+                  {removeMutation.isPending ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <FiUserX className="text-sm" />
+                      <span>Remove</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

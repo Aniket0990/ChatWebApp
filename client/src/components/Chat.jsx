@@ -12,6 +12,20 @@ import { socket } from "../socket/socket";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useUsers } from "../hooks/useUsers";
+import { queryKeys } from "../lib/queryClient";
+import {
+  clearChatMessages,
+  createMessage,
+  deleteMessage,
+  getMessages,
+  getOrCreateChat,
+  reactToMessage,
+  togglePinMessage,
+  updateMessage,
+  uploadFile as uploadFileApi,
+} from "../hooks/useChat";
 import EmojiPicker from "emoji-picker-react";
 import Avatar from "./Avatar";
 import DocumentPreviewModal from "./DocumentPreviewModal";
@@ -42,11 +56,9 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 export default function Chat() {
   const { user, setUser, logout } = useContext(AuthContext);
 
-  const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [currentChat, setCurrentChat] = useState(null);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
   const [typing, setTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -95,6 +107,35 @@ export default function Chat() {
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // --------------------- SERVER STATE (React Query) ---------------------
+  // Sidebar users: a cached list that socket events patch in place.
+  const { data: users = [] } = useUsers();
+  const setUsers = useCallback(
+    (updater) =>
+      queryClient.setQueryData(queryKeys.users, (prev = []) =>
+        typeof updater === "function" ? updater(prev) : updater,
+      ),
+    [queryClient],
+  );
+
+  // Messages: one cache entry per chat. Every existing `setMessages(updater)`
+  // call (socket events + local actions) now writes into that cache entry.
+  const messagesKey = queryKeys.messages(currentChat?._id);
+  const { data: messages = [] } = useQuery({
+    queryKey: messagesKey,
+    queryFn: () => getMessages(currentChat._id),
+    enabled: Boolean(currentChat?._id),
+    staleTime: 0,
+  });
+  const setMessages = useCallback(
+    (updater) =>
+      queryClient.setQueryData(messagesKey, (prev = []) =>
+        typeof updater === "function" ? updater(prev) : updater,
+      ),
+    [queryClient, messagesKey],
+  );
   const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const chatFileRef = useRef(null);
@@ -128,12 +169,38 @@ export default function Chat() {
     );
   };
 
-  // SOCKET SETUP
+  // SOCKET SETUP & RECONNECTION
   useEffect(() => {
-    if (user?.user?._id) {
-      socket.emit("setup", user.user._id);
+    if (!user?.user?._id) return;
+    const userId = user.user._id.toString();
+
+    const handleConnect = () => {
+      socket.emit("setup", userId);
+      if (currentChat?._id) {
+        socket.emit("join chat", currentChat._id);
+      }
+    };
+
+    if (!socket.connected) {
+      socket.connect();
+    } else {
+      handleConnect();
     }
-  }, [user]);
+
+    socket.on("connect", handleConnect);
+    socket.io?.on("reconnect", handleConnect);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.io?.off("reconnect", handleConnect);
+    };
+  }, [user?.user?._id, currentChat?._id]);
+
+  useEffect(() => {
+    if (currentChat?._id && socket.connected) {
+      socket.emit("join chat", currentChat._id);
+    }
+  }, [currentChat?._id]);
 
   // SOCKET LISTENERS
   useEffect(() => {
@@ -142,7 +209,10 @@ export default function Chat() {
       const chatId = msg.chat?._id || msg.chat;
 
       if (currentChat && chatId === currentChat._id) {
-        setMessages((prev) => [...prev, msg]);
+        setMessages((prev) => {
+          if (prev.some((m) => m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
 
         if (senderId !== user?.user?._id) {
           socket.emit("message delivered", {
@@ -260,19 +330,340 @@ export default function Chat() {
     socket.on("stop typing", () => setTyping(false));
 
     socket.on("user status changed", ({ userId, isOnline }) => {
+      if (!userId) return;
+      const targetId = userId.toString();
       setUsers((prev) =>
-        prev.map((u) => (u._id === userId ? { ...u, isOnline } : u)),
+        prev.map((u) =>
+          u._id?.toString() === targetId ? { ...u, isOnline } : u,
+        ),
       );
       setSelectedUser((prev) =>
-        prev && prev._id === userId ? { ...prev, isOnline } : prev,
+        prev && prev._id?.toString() === targetId
+          ? { ...prev, isOnline }
+          : prev,
       );
     });
+
+    // Real-time connection events
+    socket.on("connection_request_received", () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.receivedRequests });
+    });
+
+    socket.on("connection_request_cancelled", () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.receivedRequests });
+    });
+
+    socket.on("connection_accepted", () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: queryKeys.connections });
+      queryClient.invalidateQueries({ queryKey: queryKeys.receivedRequests });
+      queryClient.invalidateQueries({ queryKey: queryKeys.connectionSearchRoot });
+    });
+
+    socket.on("connection_declined", () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.connections });
+      queryClient.invalidateQueries({ queryKey: queryKeys.receivedRequests });
+      queryClient.invalidateQueries({ queryKey: queryKeys.connectionSearchRoot });
+    });
+
+    socket.on("connection_removed", ({ userId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: queryKeys.connections });
+      queryClient.invalidateQueries({ queryKey: queryKeys.connectionSearchRoot });
+      if (userId) {
+        setSelectedUser((prev) => (prev && prev._id === userId ? null : prev));
+        setCurrentChat((prev) => {
+          if (
+            prev &&
+            prev.users?.some(
+              (u) => (u._id?.toString() || u.toString()) === userId.toString(),
+            )
+          ) {
+            return null;
+          }
+          return prev;
+        });
+      }
+    });
+
+    // Real-time profile updates (photo, bio/about, name)
+    const handleProfileUpdated = (updatedUser) => {
+      if (!updatedUser?._id) return;
+      const targetId = updatedUser._id.toString();
+
+      // 1. Update React Query users cache (Sidebar users list)
+      setUsers((prev) =>
+        prev.map((u) =>
+          u._id?.toString() === targetId
+            ? {
+                ...u,
+                name: updatedUser.name !== undefined ? updatedUser.name : u.name,
+                profilePic:
+                  updatedUser.profilePic !== undefined
+                    ? updatedUser.profilePic
+                    : u.profilePic,
+                about:
+                  updatedUser.about !== undefined ? updatedUser.about : u.about,
+                email:
+                  updatedUser.email !== undefined ? updatedUser.email : u.email,
+              }
+            : u,
+        ),
+      );
+
+      // 2. Update selectedUser if active chat is with this user
+      setSelectedUser((prev) =>
+        prev && prev._id?.toString() === targetId
+          ? {
+              ...prev,
+              name:
+                updatedUser.name !== undefined ? updatedUser.name : prev.name,
+              profilePic:
+                updatedUser.profilePic !== undefined
+                  ? updatedUser.profilePic
+                  : prev.profilePic,
+              about:
+                updatedUser.about !== undefined ? updatedUser.about : prev.about,
+              email:
+                updatedUser.email !== undefined ? updatedUser.email : prev.email,
+            }
+          : prev,
+      );
+
+      // 3. Update currentChat participant info
+      setCurrentChat((prev) => {
+        if (!prev || !Array.isArray(prev.users)) return prev;
+        return {
+          ...prev,
+          users: prev.users.map((u) => {
+            const uid = u._id ? u._id.toString() : u.toString();
+            if (uid === targetId) {
+              return typeof u === "object"
+                ? {
+                    ...u,
+                    name:
+                      updatedUser.name !== undefined
+                        ? updatedUser.name
+                        : u.name,
+                    profilePic:
+                      updatedUser.profilePic !== undefined
+                        ? updatedUser.profilePic
+                        : u.profilePic,
+                    about:
+                      updatedUser.about !== undefined
+                        ? updatedUser.about
+                        : u.about,
+                    email:
+                      updatedUser.email !== undefined
+                        ? updatedUser.email
+                        : u.email,
+                  }
+                : u;
+            }
+            return u;
+          }),
+        };
+      });
+
+      // 4. Update messages in active chat (sender info, replyTo preview, reactions)
+      setMessages((prev) =>
+        prev.map((m) => {
+          let changed = false;
+          let newSender = m.sender;
+          if (
+            m.sender &&
+            (m.sender._id?.toString() === targetId ||
+              m.sender.toString() === targetId)
+          ) {
+            newSender =
+              typeof m.sender === "object"
+                ? {
+                    ...m.sender,
+                    name:
+                      updatedUser.name !== undefined
+                        ? updatedUser.name
+                        : m.sender.name,
+                    profilePic:
+                      updatedUser.profilePic !== undefined
+                        ? updatedUser.profilePic
+                        : m.sender.profilePic,
+                  }
+                : m.sender;
+            changed = true;
+          }
+
+          let newReplyTo = m.replyTo;
+          if (
+            m.replyTo?.sender &&
+            (m.replyTo.sender._id?.toString() === targetId ||
+              m.replyTo.sender.toString() === targetId)
+          ) {
+            newReplyTo = {
+              ...m.replyTo,
+              sender:
+                typeof m.replyTo.sender === "object"
+                  ? {
+                      ...m.replyTo.sender,
+                      name:
+                        updatedUser.name !== undefined
+                          ? updatedUser.name
+                          : m.replyTo.sender.name,
+                      profilePic:
+                        updatedUser.profilePic !== undefined
+                          ? updatedUser.profilePic
+                          : m.replyTo.sender.profilePic,
+                    }
+                  : m.replyTo.sender,
+            };
+            changed = true;
+          }
+
+          let newReactions = m.reactions;
+          if (
+            Array.isArray(m.reactions) &&
+            m.reactions.some(
+              (r) =>
+                r.user?._id?.toString() === targetId ||
+                r.user?.toString() === targetId,
+            )
+          ) {
+            newReactions = m.reactions.map((r) => {
+              if (
+                r.user?._id?.toString() === targetId ||
+                r.user?.toString() === targetId
+              ) {
+                return {
+                  ...r,
+                  user:
+                    typeof r.user === "object"
+                      ? {
+                          ...r.user,
+                          name:
+                            updatedUser.name !== undefined
+                              ? updatedUser.name
+                              : r.user.name,
+                          profilePic:
+                            updatedUser.profilePic !== undefined
+                              ? updatedUser.profilePic
+                              : r.user.profilePic,
+                        }
+                      : r.user,
+                };
+              }
+              return r;
+            });
+            changed = true;
+          }
+
+          if (changed) {
+            return {
+              ...m,
+              sender: newSender,
+              replyTo: newReplyTo,
+              reactions: newReactions,
+            };
+          }
+          return m;
+        }),
+      );
+
+      // 5. Update ConnectionPanel queries in place + invalidate
+      queryClient.setQueryData(queryKeys.connections, (prev) => {
+        if (!Array.isArray(prev)) return prev;
+        return prev.map((c) =>
+          c._id?.toString() === targetId
+            ? {
+                ...c,
+                name: updatedUser.name !== undefined ? updatedUser.name : c.name,
+                profilePic:
+                  updatedUser.profilePic !== undefined
+                    ? updatedUser.profilePic
+                    : c.profilePic,
+                about:
+                  updatedUser.about !== undefined ? updatedUser.about : c.about,
+                email:
+                  updatedUser.email !== undefined ? updatedUser.email : c.email,
+              }
+            : c,
+        );
+      });
+
+      queryClient.setQueryData(queryKeys.receivedRequests, (prev) => {
+        if (!Array.isArray(prev)) return prev;
+        return prev.map((req) => {
+          if (
+            req.sender &&
+            (req.sender._id?.toString() === targetId ||
+              req.sender.toString() === targetId)
+          ) {
+            return {
+              ...req,
+              sender:
+                typeof req.sender === "object"
+                  ? {
+                      ...req.sender,
+                      name:
+                        updatedUser.name !== undefined
+                          ? updatedUser.name
+                          : req.sender.name,
+                      profilePic:
+                        updatedUser.profilePic !== undefined
+                          ? updatedUser.profilePic
+                          : req.sender.profilePic,
+                    }
+                  : req.sender,
+            };
+          }
+          return req;
+        });
+      });
+
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: queryKeys.connections });
+      queryClient.invalidateQueries({ queryKey: queryKeys.receivedRequests });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.connectionSearchRoot,
+      });
+
+      // 6. If updated user is current logged-in user, sync AuthContext and localStorage
+      if (user?.user?._id?.toString() === targetId) {
+        setUser((prev) => {
+          if (!prev) return prev;
+          const updated = {
+            ...prev,
+            user: {
+              ...prev.user,
+              name:
+                updatedUser.name !== undefined
+                  ? updatedUser.name
+                  : prev.user.name,
+              profilePic:
+                updatedUser.profilePic !== undefined
+                  ? updatedUser.profilePic
+                  : prev.user.profilePic,
+              about:
+                updatedUser.about !== undefined
+                  ? updatedUser.about
+                  : prev.user.about,
+              email:
+                updatedUser.email !== undefined
+                  ? updatedUser.email
+                  : prev.user.email,
+            },
+          };
+          localStorage.setItem("user", JSON.stringify(updated));
+          return updated;
+        });
+      }
+    };
+
+    socket.on("user_profile_updated", handleProfileUpdated);
 
     return () => {
       socket.off("message received");
       socket.off("message delivered");
       socket.off("message seen");
-    socket.off("message seen status");
+      socket.off("message seen status");
       socket.off("message edited");
       socket.off("message deleted");
       socket.off("message pinned");
@@ -280,8 +671,14 @@ export default function Chat() {
       socket.off("typing");
       socket.off("stop typing");
       socket.off("user status changed");
+      socket.off("connection_request_received");
+      socket.off("connection_request_cancelled");
+      socket.off("connection_accepted");
+      socket.off("connection_declined");
+      socket.off("connection_removed");
+      socket.off("user_profile_updated", handleProfileUpdated);
     };
-  }, [currentChat, user]);
+  }, [currentChat, user, setUser, queryClient]);
 
   // AUTO SCROLL (Directly show latest message without scrolling animation)
   useLayoutEffect(() => {
@@ -323,21 +720,11 @@ export default function Chat() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // FETCH USERS
-  const fetchUsers = useCallback(async () => {
-    try {
-      const { data } = await axios.get("/auth/users", {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      setUsers(data);
-    } catch (err) {
-      console.error("Failed to load users", err);
-    }
-  }, [user?.token]);
-
-  useEffect(() => {
-    if (user?.token) fetchUsers();
-  }, [user?.token, fetchUsers]);
+  // Refresh the sidebar list (used after a new connection is accepted).
+  const fetchUsers = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: queryKeys.users }),
+    [queryClient],
+  );
 
   if (!user) return null;
 
@@ -350,27 +737,27 @@ export default function Chat() {
     setMobileShowChat(true);
 
     try {
-      const { data } = await axios.post(
-        "/chat",
-        { userId: u._id },
-        { headers: { Authorization: `Bearer ${user.token}` } },
-      );
+      const data = await getOrCreateChat(u._id);
 
       setCurrentChat(data);
+      if (!socket.connected) {
+        socket.connect();
+      }
       socket.emit("join chat", data._id);
 
-      const messagesRes = await axios.get(`/message/${data._id}`, {
-        headers: { Authorization: `Bearer ${user.token}` },
+      // Prime the per-chat cache and reuse the same array the query renders.
+      const messagesRes = await queryClient.fetchQuery({
+        queryKey: queryKeys.messages(data._id),
+        queryFn: () => getMessages(data._id),
+        staleTime: 0,
       });
-
-      setMessages(messagesRes.data);
 
       // Mark unread messages as seen + clear sidebar badge for this user + sync lastMessage
       let hasUnseen = false;
-      const nonDeleted = messagesRes.data.filter((m) => !m.isDeleted);
+      const nonDeleted = messagesRes.filter((m) => !m.isDeleted);
       const last = nonDeleted[nonDeleted.length - 1];
 
-      messagesRes.data.forEach((msg) => {
+      messagesRes.forEach((msg) => {
         if (
           msg.status !== "seen" &&
           (msg.sender?._id || msg.sender) !== user?.user?._id
@@ -416,16 +803,16 @@ export default function Chat() {
 
     if (!currentChat) return;
 
+    if (!socket.connected) {
+      socket.connect();
+    }
+
     socket.emit("stop typing", currentChat._id);
 
     // If in editing mode
     if (editingMessage) {
       try {
-        const { data } = await axios.put(
-          `/message/${editingMessage._id}`,
-          { content: message },
-          { headers: { Authorization: `Bearer ${user.token}` } },
-        );
+        const data = await updateMessage(editingMessage._id, message);
 
         setMessages((prev) =>
           prev.map((m) => (m._id === data._id ? data : m)),
@@ -460,21 +847,18 @@ export default function Chat() {
 
     // Normal send (with optional reply)
     try {
-      const { data } = await axios.post(
-        "/message",
-        {
-          content: message,
-          chatId: currentChat._id,
-          fileUrl,
-          replyTo: replyingTo?._id || null,
-        },
-        {
-          headers: { Authorization: `Bearer ${user.token}` },
-        },
-      );
+      const data = await createMessage({
+        content: message,
+        chatId: currentChat._id,
+        fileUrl,
+        replyTo: replyingTo?._id || null,
+      });
 
       socket.emit("new message", data);
-      setMessages((prev) => [...prev, data]);
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === data._id)) return prev;
+        return [...prev, data];
+      });
       setMessage("");
       setReplyingTo(null);
 
@@ -558,18 +942,10 @@ export default function Chat() {
   const uploadFile = async (file) => {
     if (!file || !currentChat) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
       toast.info("Uploading file...");
-      const { data } = await axios.post("/upload", formData, {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      await sendMessage(data.url);
+      const url = await uploadFileApi(file);
+      await sendMessage(url);
       toast.success("File sent");
     } catch {
       toast.error("File upload failed");
@@ -597,10 +973,7 @@ export default function Chat() {
   const handleDeleteMessage = async (msg, mode) => {
     try {
       setActiveMenuId(null);
-      const { data } = await axios.delete(`/message/${msg._id}`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-        data: { mode },
-      });
+      const { data } = await deleteMessage(msg._id, mode);
 
       if (mode === "everyone") {
         setMessages((prev) => {
@@ -634,11 +1007,7 @@ export default function Chat() {
   const handleTogglePin = async (msg) => {
     try {
       setActiveMenuId(null);
-      const { data } = await axios.put(
-        `/message/${msg._id}/pin`,
-        {},
-        { headers: { Authorization: `Bearer ${user.token}` } },
-      );
+      const data = await togglePinMessage(msg._id);
 
       setMessages((prev) =>
         prev.map((m) => (m._id === data._id ? data : m)),
@@ -653,11 +1022,7 @@ export default function Chat() {
   const handleReaction = async (msg, emoji) => {
     try {
       setActiveReactionId(null);
-      const { data } = await axios.put(
-        `/message/${msg._id}/react`,
-        { emoji },
-        { headers: { Authorization: `Bearer ${user.token}` } },
-      );
+      const data = await reactToMessage(msg._id, emoji);
 
       setMessages((prev) =>
         prev.map((m) => (m._id === data._id ? data : m)),
@@ -714,9 +1079,7 @@ export default function Chat() {
     setShowClearChatConfirm(false);
     if (!currentChat) return;
     try {
-      await axios.delete(`/message/clear/${currentChat._id}`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
+      await clearChatMessages(currentChat._id);
       setMessages([]);
       if (selectedUser?._id) {
         setUsers((prev) =>
@@ -981,9 +1344,9 @@ export default function Chat() {
               }`}
             >
               <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
-                {/* BACK ARROW (mobile/tablet only — returns to chat list) */}
+                {/* BACK ARROW (returns to chat list & closes active chat) */}
                 <button
-                  onClick={() => setMobileShowChat(false)}
+                  onClick={handleCloseChat}
                   className={`lg:hidden p-2 -ml-1 rounded-full transition cursor-pointer shrink-0 ${
                     darkMode
                       ? "text-gray-300 hover:bg-[#2a3942]"
@@ -1783,7 +2146,9 @@ export default function Chat() {
                                   {isSelf && !m.isDeleted && (
                                     <span className="flex items-center">
                                       {m.status === "sent" && (
-                                        <IoCheckmark className="text-gray-400 text-xs" />
+                                        selectedUser?.isOnline
+                                          ? <IoCheckmarkDone className="text-gray-400 text-xs" />
+                                          : <IoCheckmark className="text-gray-400 text-xs" />
                                       )}
                                       {m.status === "delivered" && (
                                         <IoCheckmarkDone className="text-gray-400 text-xs" />

@@ -5,6 +5,7 @@ const {
   acceptRequest,
   declineRequest,
   cancelRequest,
+  removeConnection,
   getMyConnections,
   getReceivedRequests,
   getSentRequests,
@@ -34,5 +35,8 @@ router.put("/decline/:connectionId", auth, declineRequest);
 
 // Cancel a sent request
 router.delete("/cancel/:connectionId", auth, cancelRequest);
+
+// Remove an accepted connection
+router.delete("/remove/:connectionId", auth, removeConnection);
 
 module.exports = router;
