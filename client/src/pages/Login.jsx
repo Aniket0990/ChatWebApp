@@ -59,7 +59,7 @@ export default function Login() {
           <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center text-2xl shadow-inner">
             <IoChatbubbleEllipses className="text-white" />
           </div>
-          <span className="text-2xl font-bold tracking-tight">Chat Box</span>
+          <span className="text-2xl font-bold tracking-tight">Connecto</span>
         </div>
 
         {/* Card */}

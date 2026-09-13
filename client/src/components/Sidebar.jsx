@@ -86,7 +86,7 @@ export default function Sidebar({
               darkMode ? "text-emerald-500" : "text-emerald-600"
             }`}
           >
-            Friends Chat App
+            Connecto
           </h1>
 
           {/* + Add Connection button with pending badge */}

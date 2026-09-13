@@ -2052,7 +2052,7 @@ export default function Chat() {
                 darkMode ? "text-gray-300" : "text-gray-700"
               }`}
             >
-              Welcome to Chat Box
+              Welcome to Connecto - A Realtime Chat App
             </h2>
             <p
               className={`text-sm max-w-sm mt-1 ${
