@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { FiUser, FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import { IoChatbubbleEllipses } from "react-icons/io5";
 import { useRegister } from "../hooks/useAuthMutations";
+import SEO from "../components/SEO";
 
 export default function Register() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -52,10 +53,16 @@ export default function Register() {
   };
 
   return (
-    <div
+    <main
       className="min-h-screen flex flex-col justify-center items-center px-4 py-8 relative overflow-hidden bg-cover bg-center bg-no-repeat transition-all"
       style={{ backgroundImage: "url('/wallpapers/wallpaper-2.jpg')" }}
     >
+      <SEO
+        title="Create Account — Connecto | Real-Time Chat & Messaging"
+        description="Create your free Connecto account. Connect with friends, send connection requests, and start instant messaging in real time."
+        canonical="/register"
+      />
+
       {/* Subtle Cinematic Vignette / Glass Backdrop Overlay */}
       <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] pointer-events-none" />
 
@@ -69,9 +76,9 @@ export default function Register() {
               alt="Connecto Logo"
               className="w-9 h-9 rounded-xl shadow-md"
             />
-            <span className="text-2xl font-bold tracking-[0.22em] uppercase text-[#FF8624] drop-shadow-sm">
+            <h1 className="text-2xl font-bold tracking-[0.22em] uppercase text-[#FF8624] drop-shadow-sm">
               Connecto
-            </span>
+            </h1>
           </div>
           <h2 className="text-xl font-medium tracking-wide text-white">
             Create Account
@@ -210,6 +217,6 @@ export default function Register() {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

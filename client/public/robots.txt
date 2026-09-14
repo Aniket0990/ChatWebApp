@@ -1,0 +1,13 @@
+# Robots.txt for Connecto
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+
+# Disallow private user chat sessions and internal API calls
+Disallow: /api/
+Disallow: /chat
+Disallow: /profile
+
+# Sitemap Location
+Sitemap: https://connectnchat.vercel.app/sitemap.xml

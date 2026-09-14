@@ -30,6 +30,7 @@ import EmojiPicker from "emoji-picker-react";
 import Avatar from "./Avatar";
 import DocumentPreviewModal from "./DocumentPreviewModal";
 import Sidebar from "./Sidebar";
+import SEO from "./SEO";
 import {
   FiPaperclip,
   FiSmile,
@@ -1291,6 +1292,13 @@ export default function Chat() {
         darkMode ? "dark bg-[#0c1317] text-[#e9edef]" : "bg-[#efeae2] text-gray-800"
       }`}
     >
+      <SEO
+        title="Chat & Messages — Connecto"
+        description="Private real-time messaging and chat dashboard."
+        canonical="/chat"
+        robots="noindex, nofollow"
+      />
+
       {/* SIDEBAR */}
       <Sidebar
         users={users}

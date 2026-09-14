@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import { IoChatbubbleEllipses } from "react-icons/io5";
 import { socket } from "../socket/socket";
+import SEO from "../components/SEO";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -53,10 +54,16 @@ export default function Login() {
   };
 
   return (
-    <div
+    <main
       className="min-h-screen flex flex-col justify-center items-center px-4 py-8 relative overflow-hidden bg-cover bg-center bg-no-repeat transition-all"
       style={{ backgroundImage: "url('/wallpapers/wallpaper-2.jpg')" }}
     >
+      <SEO
+        title="Login — Connecto | Fast & Secure Real-Time Chat"
+        description="Sign in to Connecto to access your real-time chats, messages, and friend connections. Blazing fast instant messaging."
+        canonical="/login"
+      />
+
       {/* Subtle Cinematic Vignette / Glass Backdrop Overlay */}
       <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] pointer-events-none" />
 
@@ -70,9 +77,9 @@ export default function Login() {
               alt="Connecto Logo"
               className="w-9 h-9 rounded-xl shadow-md"
             />
-            <span className="text-2xl font-bold tracking-[0.22em] uppercase text-[#FF8624] drop-shadow-sm">
+            <h1 className="text-2xl font-bold tracking-[0.22em] uppercase text-[#FF8624] drop-shadow-sm">
               Connecto
-            </span>
+            </h1>
           </div>
           <h2 className="text-xl font-medium tracking-wide text-white">
             Welcome Back
@@ -150,6 +157,6 @@ export default function Login() {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
