@@ -1,18 +1,48 @@
 {
+  "id": "/",
   "name": "Connecto — Real-Time Chat & Instant Messaging",
   "short_name": "Connecto",
   "description": "Blazing-fast real-time messaging platform with instant connection requests, glassmorphic UI, and rich media sharing.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A0E14",
   "theme_color": "#FF8624",
+  "categories": ["social", "communication", "productivity"],
   "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
     {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/wallpapers/wallpaper-2.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Connecto Real-Time Chat"
     }
   ]
 }

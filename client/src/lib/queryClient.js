@@ -30,5 +30,6 @@ export const queryKeys = {
   receivedRequests: ["connections", "received"],
   connectionSearchRoot: ["connections", "search"],
   connectionSearch: (query) => ["connections", "search", query],
+  chat: (userId) => ["chat", userId],
   messages: (chatId) => ["messages", chatId],
 };

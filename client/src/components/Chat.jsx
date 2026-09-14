@@ -128,7 +128,7 @@ export default function Chat() {
     queryKey: messagesKey,
     queryFn: () => getMessages(currentChat._id),
     enabled: Boolean(currentChat?._id),
-    staleTime: 0,
+    staleTime: 5 * 60_000,
   });
   const setMessages = useCallback(
     (updater) =>
@@ -251,16 +251,24 @@ export default function Chat() {
     });
 
     socket.on("message delivered", (messageId) => {
+      const idStr = messageId?.toString();
       setMessages((prev) =>
         prev.map((m) =>
-          m._id === messageId ? { ...m, status: "delivered" } : m,
+          (m._id?.toString() === idStr || m._id === messageId) && m.status !== "seen"
+            ? { ...m, status: "delivered" }
+            : m,
         ),
       );
     });
 
     socket.on("message seen", (messageId) => {
+      const idStr = messageId?.toString();
       setMessages((prev) =>
-        prev.map((m) => (m._id === messageId ? { ...m, status: "seen" } : m)),
+        prev.map((m) =>
+          m._id?.toString() === idStr || m._id === messageId
+            ? { ...m, status: "seen" }
+            : m,
+        ),
       );
     });
 
@@ -732,34 +740,45 @@ export default function Chat() {
 
   // OPEN CHAT
   const openChat = async (u) => {
+    if (!u?._id) return;
+    if (selectedUser?._id === u._id && currentChat) {
+      setMobileShowChat(true);
+      return;
+    }
+
+    // 1. Immediately set selected user & mobile view
     setSelectedUser(u);
     setReplyingTo(null);
     setEditingMessage(null);
     setMessage("");
     setMobileShowChat(true);
 
-    try {
-      const data = await getOrCreateChat(u._id);
+    // 2. Instantly check if chat object is already cached for this user (0ms delay)
+    const cachedChat = queryClient.getQueryData(queryKeys.chat(u._id));
+    if (cachedChat) {
+      setCurrentChat(cachedChat);
+      if (socket.connected) {
+        socket.emit("join chat", cachedChat._id);
+      }
+    }
 
-      setCurrentChat(data);
+    try {
+      // 3. Resolve chat (instant if cached, fast network fallback if new)
+      const data = cachedChat || (await getOrCreateChat(u._id));
+      if (!cachedChat) {
+        queryClient.setQueryData(queryKeys.chat(u._id), data);
+        setCurrentChat(data);
+      }
       if (!socket.connected) {
         socket.connect();
       }
       socket.emit("join chat", data._id);
 
-      // Prime the per-chat cache and reuse the same array the query renders.
-      const messagesRes = await queryClient.fetchQuery({
-        queryKey: queryKeys.messages(data._id),
-        queryFn: () => getMessages(data._id),
-        staleTime: 0,
-      });
-
-      // Mark unread messages as seen + clear sidebar badge for this user + sync lastMessage
+      // 4. Mark existing unseen received messages as seen locally and over socket
+      const existingMessages =
+        queryClient.getQueryData(queryKeys.messages(data._id)) || [];
       let hasUnseen = false;
-      const nonDeleted = messagesRes.filter((m) => !m.isDeleted);
-      const last = nonDeleted[nonDeleted.length - 1];
-
-      messagesRes.forEach((msg) => {
+      existingMessages.forEach((msg) => {
         if (
           msg.status !== "seen" &&
           (msg.sender?._id || msg.sender) !== user?.user?._id
@@ -772,28 +791,64 @@ export default function Chat() {
         }
       });
 
+      if (hasUnseen) {
+        queryClient.setQueryData(queryKeys.messages(data._id), (prev = []) =>
+          prev.map((m) =>
+            (m.sender?._id || m.sender) !== user?.user?._id
+              ? { ...m, status: "seen" }
+              : m,
+          ),
+        );
+      }
+
+      // Clear sidebar unread badge immediately
       setUsers((prev) =>
-        prev.map((x) =>
-          x._id === u._id
-            ? {
-                ...x,
-                unreadCount: 0,
-                ...(last
-                  ? {
-                      lastMessage: {
-                        content: last.content,
-                        hasAttachment: Boolean(last.fileUrl),
-                        isMine:
-                          (last.sender?._id || last.sender) ===
-                          user?.user?._id,
-                        createdAt: last.createdAt,
-                      },
-                    }
-                  : {}),
-              }
-            : x,
-        ),
+        prev.map((x) => (x._id === u._id ? { ...x, unreadCount: 0 } : x)),
       );
+
+      // 5. Silent background sync to get latest message statuses (seen/delivered)
+      getMessages(data._id)
+        .then((freshMessages) => {
+          if (Array.isArray(freshMessages)) {
+            freshMessages.forEach((msg) => {
+              if (
+                msg.status !== "seen" &&
+                (msg.sender?._id || msg.sender) !== user?.user?._id
+              ) {
+                socket.emit("message seen", {
+                  messageId: msg._id,
+                  chatId: data._id,
+                });
+              }
+            });
+
+            queryClient.setQueryData(queryKeys.messages(data._id), freshMessages);
+
+            const nonDeleted = freshMessages.filter((m) => !m.isDeleted);
+            const last = nonDeleted[nonDeleted.length - 1];
+            if (last) {
+              setUsers((prev) =>
+                prev.map((x) =>
+                  x._id === u._id
+                    ? {
+                        ...x,
+                        unreadCount: 0,
+                        lastMessage: {
+                          content: last.content,
+                          hasAttachment: Boolean(last.fileUrl),
+                          isMine:
+                            (last.sender?._id || last.sender) ===
+                            user?.user?._id,
+                          createdAt: last.createdAt,
+                        },
+                      }
+                    : x,
+                ),
+              );
+            }
+          }
+        })
+        .catch(() => {});
     } catch (err) {
       toast.error("Failed to load chat");
     }
@@ -1102,14 +1157,23 @@ export default function Chat() {
   const handleCloseChat = () => {
     setShowChatMenu(false);
     setMobileShowChat(false);
-    setSelectedUser(null);
-    setCurrentChat(null);
-    setMessages([]);
+    setIsSearching(false);
+    setSearchQuery("");
     setReplyingTo(null);
     setEditingMessage(null);
     setMessage("");
-    setIsSearching(false);
-    setSearchQuery("");
+
+    // On mobile (<1024px), keep selectedUser active while the panel slides off screen
+    // so the placeholder never flashes/splashes during the 300ms transition.
+    if (window.innerWidth < 1024) {
+      setTimeout(() => {
+        setSelectedUser(null);
+        setCurrentChat(null);
+      }, 300);
+    } else {
+      setSelectedUser(null);
+      setCurrentChat(null);
+    }
   };
 
   // SEARCH HELPER: Highlight matching text in message content
@@ -1293,7 +1357,7 @@ export default function Chat() {
       }`}
     >
       <SEO
-        title="Chat & Messages — Connecto"
+        title="Connecto - Web Chat App"
         description="Private real-time messaging and chat dashboard."
         canonical="/chat"
         robots="noindex, nofollow"
@@ -1317,7 +1381,7 @@ export default function Chat() {
         onDragLeave={handleDragLeave}
         onDrop={handleFileDrop}
         className={`flex-1 flex flex-col h-full relative overflow-hidden transition-colors duration-200
-          max-lg:absolute max-lg:inset-0 max-lg:z-30 max-lg:transition-transform max-lg:duration-300 max-lg:animate-slide-in-right ${
+          max-lg:absolute max-lg:inset-0 max-lg:z-30 max-lg:transition-transform max-lg:duration-300 ${
           mobileShowChat
             ? "max-lg:translate-x-0"
             : "max-lg:translate-x-full max-lg:pointer-events-none"
@@ -2173,7 +2237,7 @@ export default function Chat() {
                                         <IoCheckmarkDone className="text-gray-400 text-xs" />
                                       )}
                                       {m.status === "seen" && (
-                                        <IoCheckmarkDone className="text-emerald-500 text-xs" />
+                                        <IoCheckmarkDone className="text-[#53bdeb] text-xs font-semibold" />
                                       )}
                                     </span>
                                   )}
@@ -2307,11 +2371,7 @@ export default function Chat() {
             )}
 
             {/* WHATSAPP-STYLE INPUT SECTION (Floating Rounded Pill + Preview) */}
-            <div
-              className={`p-2.5 sm:p-3.5 border-t shrink-0 transition-colors duration-200 ${
-                darkMode ? "bg-[#202c33] border-[#222e35]" : "bg-[#efeae2] border-black/[0.04]"
-              }`}
-            >
+            <div className="p-2.5 sm:p-3.5 shrink-0 bg-transparent">
               {/* WhatsApp Unified Input Pill / Card */}
               <div
                 className={`transition-all shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
@@ -2469,9 +2529,9 @@ export default function Chat() {
             </div>
           </>
         ) : (
-          /* NO CHAT SELECTED PLACEHOLDER */
+          /* NO CHAT SELECTED PLACEHOLDER (Desktop only) */
           <div
-            className={`flex-1 flex flex-col items-center justify-center p-6 text-center transition-colors duration-200 ${
+            className={`flex-1 flex flex-col items-center justify-center p-6 text-center transition-colors duration-200 max-lg:hidden ${
               darkMode ? "text-gray-500" : "text-gray-400"
             }`}
           >

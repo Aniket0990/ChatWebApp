@@ -262,13 +262,7 @@ export default function Sidebar({
                         {u.lastMessage?.createdAt && (
                           <span
                             className={`text-[10px] whitespace-nowrap shrink-0 leading-tight ${
-                              u.unreadCount > 0
-                                ? darkMode
-                                  ? "text-[#FF8624] font-semibold"
-                                  : "text-[#FF8624] font-semibold"
-                                : darkMode
-                                  ? "text-gray-500"
-                                  : "text-gray-400"
+                              darkMode ? "text-gray-400" : "text-gray-400"
                             }`}
                           >
                             {formatListTime(u.lastMessage.createdAt)}

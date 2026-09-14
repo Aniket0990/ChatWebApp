@@ -16,3 +16,10 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     </BrowserRouter>
   </QueryClientProvider>
 );
+
+// Register service worker for PWA and Android packaging
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}

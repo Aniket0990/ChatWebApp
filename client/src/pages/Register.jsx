@@ -58,7 +58,7 @@ export default function Register() {
       style={{ backgroundImage: "url('/wallpapers/wallpaper-2.jpg')" }}
     >
       <SEO
-        title="Create Account — Connecto | Real-Time Chat & Messaging"
+        title="Register — Connecto | Fast & Secure Real-Time Web Chat App"
         description="Create your free Connecto account. Connect with friends, send connection requests, and start instant messaging in real time."
         canonical="/register"
       />

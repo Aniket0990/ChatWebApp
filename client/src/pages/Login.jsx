@@ -59,7 +59,7 @@ export default function Login() {
       style={{ backgroundImage: "url('/wallpapers/wallpaper-2.jpg')" }}
     >
       <SEO
-        title="Login — Connecto | Fast & Secure Real-Time Chat"
+        title="Login — Connecto | Fast & Secure Real-Time Web Chat App"
         description="Sign in to Connecto to access your real-time chats, messages, and friend connections. Blazing fast instant messaging."
         canonical="/login"
       />

@@ -7,7 +7,7 @@ const BASE_URL = "https://connectnchat.vercel.app";
  * Updates title, description, canonical link, Open Graph, and Twitter metadata per route.
  */
 export default function SEO({
-  title = "Connecto — Real-Time Chat & Messaging Platform",
+  title = "Connecto — Fast & Secure Real-Time Web Chat App",
   description = "Connecto is a modern, blazing-fast real-time chat application. Connect with friends, send instant messages, share media, and chat securely with fluid responsiveness.",
   keywords = "realtime chat, instant messaging, connecto chat, secure messaging web app, connect with friends, online chat, socket.io chat",
   canonical = "",
