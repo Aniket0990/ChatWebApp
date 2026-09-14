@@ -86,20 +86,115 @@ export function useSearchUsers(query, { enabled = true } = {}) {
   });
 }
 
+export const cancelConnection = async (connectionId) => {
+  const { data } = await api.delete(`/connection/cancel/${connectionId}`);
+  return data;
+};
+
 export function useSendConnectionRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: sendConnectionRequest,
-    onSuccess: () => {
+    onMutate: async (receiverId) => {
+      // Optimistically show as pending right away
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.connectionSearchRoot,
+      });
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.connectionSearchRoot },
+        (old) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((u) => {
+            if (u._id === receiverId) {
+              return {
+                ...u,
+                connectionStatus: {
+                  status: "pending",
+                  isSender: true,
+                },
+              };
+            }
+            return u;
+          });
+        },
+      );
+    },
+    onSuccess: (data, receiverId) => {
       toast.success("Connection request sent!");
-      // Refresh search results so the button flips to "Pending".
+      // Update with the actual connectionId
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.connectionSearchRoot },
+        (old) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((u) => {
+            if (u._id === receiverId) {
+              return {
+                ...u,
+                connectionStatus: {
+                  connectionId: data?._id,
+                  status: "pending",
+                  isSender: true,
+                },
+              };
+            }
+            return u;
+          });
+        },
+      );
       queryClient.invalidateQueries({
         queryKey: queryKeys.connectionSearchRoot,
       });
     },
     onError: (err) => {
       toast.error(err?.response?.data?.message || "Failed to send request");
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.connectionSearchRoot,
+      });
+    },
+  });
+}
+
+export function useCancelConnectionRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (connectionId) => cancelConnection(connectionId),
+    onMutate: async (connectionId) => {
+      // Optimistically revert user connection status back to null (Connect)
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.connectionSearchRoot,
+      });
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.connectionSearchRoot },
+        (old) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((u) => {
+            if (
+              u.connectionStatus?.connectionId === connectionId ||
+              u._id === connectionId
+            ) {
+              return { ...u, connectionStatus: null };
+            }
+            return u;
+          });
+        },
+      );
+    },
+    onSuccess: () => {
+      toast.info("Connection request cancelled");
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.connectionSearchRoot,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.receivedRequests,
+      });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to cancel request");
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.connectionSearchRoot,
+      });
     },
   });
 }

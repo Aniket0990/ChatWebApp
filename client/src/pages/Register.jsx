@@ -53,207 +53,161 @@ export default function Register() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col justify-center items-center px-4 relative ${
-        isDark ? "bg-[#0c1317]" : "bg-[#f0f2f5]"
-      }`}
+      className="min-h-screen flex flex-col justify-center items-center px-4 py-8 relative overflow-hidden bg-cover bg-center bg-no-repeat transition-all"
+      style={{ backgroundImage: "url('/wallpapers/wallpaper-2.jpg')" }}
     >
-      {/* WhatsApp Green Top Header Strip */}
-      <div className="absolute top-0 left-0 right-0 h-56 bg-emerald-600 z-0 shadow-sm" />
+      {/* Subtle Cinematic Vignette / Glass Backdrop Overlay */}
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] pointer-events-none" />
 
-      {/* Main Register Card Wrapper */}
-      <div className="w-full max-w-md z-10 my-8">
-        {/* Brand Header */}
-        <div className="flex items-center justify-center gap-2.5 mb-6 text-white select-none">
-          <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center text-2xl shadow-inner">
-            <IoChatbubbleEllipses className="text-white" />
+      {/* Main Frosted Glass Card */}
+      <div className="w-full max-w-md rounded-[32px] p-8 sm:p-10 relative z-10 backdrop-blur-2xl bg-black/40 border border-white/20 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] text-white">
+        {/* Brand Header inside the glass card */}
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-2.5 select-none mb-3">
+            <img
+              src="/favicon.svg"
+              alt="Connecto Logo"
+              className="w-9 h-9 rounded-xl shadow-md"
+            />
+            <span className="text-2xl font-bold tracking-[0.22em] uppercase text-[#FF8624] drop-shadow-sm">
+              Connecto
+            </span>
           </div>
-          <span className="text-2xl font-bold tracking-tight">Chat Box</span>
+          <h2 className="text-xl font-medium tracking-wide text-white">
+            Create Account
+          </h2>
+          <p className="text-xs mt-1 text-gray-300">
+            Sign up to connect and chat with friends
+          </p>
         </div>
 
-        {/* Card */}
-        <div
-          className={`rounded-2xl shadow-xl p-8 sm:p-10 border transition-all ${
-            isDark
-              ? "bg-[#111b21] border-[#222e35] text-[#e9edef]"
-              : "bg-white border-gray-100 text-gray-800"
-          }`}
-        >
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold tracking-tight mb-1">
-              Create Account
-            </h2>
-            <p className="text-xs text-gray-400">
-              Sign up to connect and chat with friends
-            </p>
+        <form onSubmit={submit} className="space-y-3.5">
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-gray-200">
+              Full Name
+            </label>
+            <div className="relative flex items-center">
+              <FiUser className="absolute left-4 text-gray-300 text-base" />
+              <input
+                type="text"
+                required
+                placeholder="John Doe"
+                value={form.name}
+                onChange={(e) =>
+                  setForm({ ...form, name: e.target.value })
+                }
+                className="w-full pl-11 pr-4 py-2.5 rounded-2xl text-sm border transition-all focus:outline-none focus:border-[#FF8624] focus:ring-1 focus:ring-[#FF8624]/40 bg-white/[0.08] border-white/20 text-white placeholder-gray-400 focus:bg-white/[0.14]"
+              />
+            </div>
           </div>
 
-          <form onSubmit={submit} className="space-y-4">
-            <div>
-              <label
-                className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
-                  isDark ? "text-gray-400" : "text-gray-500"
-                }`}
-              >
-                Full Name
-              </label>
-              <div className="relative flex items-center">
-                <FiUser className="absolute left-3.5 text-gray-400 text-base" />
-                <input
-                  type="text"
-                  required
-                  placeholder="John Doe"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm({ ...form, name: e.target.value })
-                  }
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
-                    isDark
-                      ? "bg-[#202c33] border-[#2a3942] text-[#e9edef] placeholder-gray-500 focus:border-emerald-500"
-                      : "bg-[#f8fafc] border-gray-200 text-gray-800 placeholder-gray-400 focus:bg-white focus:border-emerald-500"
-                  }`}
-                />
-              </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-gray-200">
+              Email Address
+            </label>
+            <div className="relative flex items-center">
+              <FiMail className="absolute left-4 text-gray-300 text-base" />
+              <input
+                type="email"
+                required
+                placeholder="name@example.com"
+                value={form.email}
+                onChange={(e) =>
+                  setForm({ ...form, email: e.target.value })
+                }
+                className="w-full pl-11 pr-4 py-2.5 rounded-2xl text-sm border transition-all focus:outline-none focus:border-[#FF8624] focus:ring-1 focus:ring-[#FF8624]/40 bg-white/[0.08] border-white/20 text-white placeholder-gray-400 focus:bg-white/[0.14]"
+              />
             </div>
+          </div>
 
-            <div>
-              <label
-                className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
-                  isDark ? "text-gray-400" : "text-gray-500"
-                }`}
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-gray-200">
+              Password
+            </label>
+            <div className="relative flex items-center">
+              <FiLock className="absolute left-4 text-gray-300 text-base" />
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                placeholder="At least 6 characters"
+                value={form.password}
+                onChange={(e) =>
+                  setForm({ ...form, password: e.target.value })
+                }
+                className="w-full pl-11 pr-11 py-2.5 rounded-2xl text-sm border transition-all focus:outline-none focus:border-[#FF8624] focus:ring-1 focus:ring-[#FF8624]/40 bg-white/[0.08] border-white/20 text-white placeholder-gray-400 focus:bg-white/[0.14]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 text-gray-300 hover:text-white transition cursor-pointer"
+                title={showPassword ? "Hide password" : "Show password"}
               >
-                Email Address
-              </label>
-              <div className="relative flex items-center">
-                <FiMail className="absolute left-3.5 text-gray-400 text-base" />
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  value={form.email}
-                  onChange={(e) =>
-                    setForm({ ...form, email: e.target.value })
-                  }
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
-                    isDark
-                      ? "bg-[#202c33] border-[#2a3942] text-[#e9edef] placeholder-gray-500 focus:border-emerald-500"
-                      : "bg-[#f8fafc] border-gray-200 text-gray-800 placeholder-gray-400 focus:bg-white focus:border-emerald-500"
-                  }`}
-                />
-              </div>
+                {showPassword ? (
+                  <FiEyeOff className="text-base" />
+                ) : (
+                  <FiEye className="text-base" />
+                )}
+              </button>
             </div>
+          </div>
 
-            <div>
-              <label
-                className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
-                  isDark ? "text-gray-400" : "text-gray-500"
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-gray-200">
+              Retype Password
+            </label>
+            <div className="relative flex items-center">
+              <FiLock className="absolute left-4 text-gray-300 text-base" />
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                required
+                placeholder="Confirm password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={`w-full pl-11 pr-11 py-2.5 rounded-2xl text-sm border transition-all focus:outline-none focus:ring-1 ${
+                  passwordMismatch
+                    ? "border-red-500/80 bg-red-500/[0.08] focus:ring-red-500/40 focus:border-red-500 text-white"
+                    : "border-white/20 bg-white/[0.08] text-white placeholder-gray-400 focus:bg-white/[0.14] focus:border-[#FF8624] focus:ring-[#FF8624]/40"
                 }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-4 text-gray-300 hover:text-white transition cursor-pointer"
+                title={showConfirmPassword ? "Hide password" : "Show password"}
               >
-                Password
-              </label>
-              <div className="relative flex items-center">
-                <FiLock className="absolute left-3.5 text-gray-400 text-base" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  placeholder="At least 6 characters"
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm({ ...form, password: e.target.value })
-                  }
-                  className={`w-full pl-10 pr-10 py-2.5 rounded-xl text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
-                    isDark
-                      ? "bg-[#202c33] border-[#2a3942] text-[#e9edef] placeholder-gray-500 focus:border-emerald-500"
-                      : "bg-[#f8fafc] border-gray-200 text-gray-800 placeholder-gray-400 focus:bg-white focus:border-emerald-500"
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 text-gray-400 hover:text-gray-600 transition cursor-pointer"
-                  title={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <FiEyeOff className="text-base" />
-                  ) : (
-                    <FiEye className="text-base" />
-                  )}
-                </button>
-              </div>
+                {showConfirmPassword ? (
+                  <FiEyeOff className="text-base" />
+                ) : (
+                  <FiEye className="text-base" />
+                )}
+              </button>
             </div>
-            <div>
-              <label
-                className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
-                  isDark ? "text-gray-400" : "text-gray-500"
-                }`}
-              >
-                Retype Password
-              </label>
-              <div className="relative flex items-center">
-                <FiLock className="absolute left-3.5 text-gray-400 text-base" />
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  required
-                  placeholder="Retype your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`w-full pl-10 pr-10 py-2.5 rounded-xl text-sm border transition-all focus:outline-none focus:ring-2 ${
-                    passwordMismatch
-                      ? "border-red-500 focus:ring-red-500/20 focus:border-red-500"
-                      : "focus:ring-emerald-500/20"
-                  } ${
-                    isDark
-                      ? `bg-[#202c33] text-[#e9edef] placeholder-gray-500 ${
-                          passwordMismatch ? "border-red-500" : "border-[#2a3942] focus:border-emerald-500"
-                        }`
-                      : `bg-[#f8fafc] text-gray-800 placeholder-gray-400 ${
-                          passwordMismatch ? "border-red-500" : "border-gray-200 focus:bg-white focus:border-emerald-500"
-                        }`
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3.5 text-gray-400 hover:text-gray-600 transition cursor-pointer"
-                  title={showConfirmPassword ? "Hide password" : "Show password"}
-                >
-                  {showConfirmPassword ? (
-                    <FiEyeOff className="text-base" />
-                  ) : (
-                    <FiEye className="text-base" />
-                  )}
-                </button>
-              </div>
-              {passwordMismatch && (
-                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
-                  ⚠ Passwords do not match
-                </p>
-              )}
-            </div>
+            {passwordMismatch && (
+              <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                ⚠ Passwords do not match
+              </p>
+            )}
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-60 hover:shadow-md active:scale-[0.99]"
-            >
-              {loading ? "Creating Account..." : "Register"}
-            </button>
-          </form>
-
-          <div
-            className={`mt-6 pt-5 border-t text-center ${
-              isDark ? "border-[#202c33]" : "border-gray-100"
-            }`}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full mt-2 py-3.5 rounded-2xl bg-gradient-to-r from-[#FF8624] to-[#FF6A00] hover:from-[#ff943a] hover:to-[#ff5c00] text-white font-semibold text-sm shadow-[0_4px_25px_rgba(255,134,36,0.45)] transition-all duration-200 cursor-pointer disabled:opacity-60 active:scale-[0.98]"
           >
-            <p className="text-xs text-gray-500">
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                className="font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition"
-              >
-                Login
-              </Link>
-            </p>
-          </div>
+            {loading ? "Creating Account..." : "Register"}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-300">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="font-semibold text-[#FF8624] hover:underline transition ml-1"
+            >
+              Login
+            </Link>
+          </p>
         </div>
       </div>
     </div>

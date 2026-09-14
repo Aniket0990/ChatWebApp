@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Avatar from "./Avatar";
 import {
   useAcceptConnection,
+  useCancelConnectionRequest,
   useConnections,
   useDeclineConnection,
   useReceivedRequests,
@@ -23,7 +24,7 @@ import {
 } from "react-icons/fi";
 
 const TABS = [
-  { id: "all", label: "All Connections", icon: FiUsers },
+  { id: "all", label: "Connections", icon: FiUsers },
   { id: "send", label: "Send Request", icon: FiUserPlus },
   { id: "received", label: "Received", icon: FiUserCheck },
 ];
@@ -58,12 +59,16 @@ export default function ConnectionPanel({
 
   // ---------- MUTATIONS ----------
   const sendMutation = useSendConnectionRequest();
+  const cancelMutation = useCancelConnectionRequest();
   const acceptMutation = useAcceptConnection();
   const declineMutation = useDeclineConnection();
   const removeMutation = useRemoveConnection();
 
   // Per-row pending state comes from the mutation itself instead of extra state.
   const sendingTo = sendMutation.isPending ? sendMutation.variables : null;
+  const cancellingId = cancelMutation.isPending
+    ? cancelMutation.variables
+    : null;
   const processingId = acceptMutation.isPending
     ? acceptMutation.variables?.connectionId
     : declineMutation.isPending
@@ -97,6 +102,8 @@ export default function ConnectionPanel({
 
   const sendRequest = (receiverId) => sendMutation.mutate(receiverId);
 
+  const cancelRequest = (target) => cancelMutation.mutate(target);
+
   const acceptRequest = (connectionId, senderName) =>
     acceptMutation.mutate(
       { connectionId, senderName },
@@ -109,13 +116,13 @@ export default function ConnectionPanel({
 
   const dm = darkMode;
 
-  const cardBg = dm ? "bg-[#202c33]" : "bg-gray-50";
-  const cardHover = dm ? "hover:bg-[#2a3942]" : "hover:bg-gray-100";
+  const cardBg = dm ? "bg-[#202c33]" : "bg-[#F3EEDD]";
+  const cardHover = dm ? "hover:bg-[#2a3942]" : "hover:bg-[#EFE8D6]";
   const textPrimary = dm ? "text-[#e9edef]" : "text-gray-800";
   const textSub = "text-gray-400";
-  const panelBg = dm ? "bg-[#111b21]" : "bg-white";
-  const borderColor = dm ? "border-[#222e35]" : "border-gray-200";
-  const inputBg = dm ? "bg-[#202c33] text-[#e9edef]" : "bg-[#f0f2f5] text-gray-800";
+  const panelBg = dm ? "bg-[#111b21]" : "bg-[#F8F4E8]";
+  const borderColor = dm ? "border-[#222e35]" : "border-[#E8E0CE]";
+  const inputBg = dm ? "bg-[#202c33] text-[#e9edef]" : "bg-[#EDE7D6] text-gray-800";
 
   // ---------- JSX ----------
   return (
@@ -127,7 +134,7 @@ export default function ConnectionPanel({
       {/* HEADER */}
       <div
         className={`flex items-center gap-3 px-4 py-3.5 border-b shrink-0 ${borderColor} ${
-          dm ? "bg-[#202c33]" : "bg-emerald-600"
+          dm ? "bg-[#202c33]" : "bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white"
         }`}
       >
         <button
@@ -149,45 +156,59 @@ export default function ConnectionPanel({
         </h2>
       </div>
 
-      {/* TABS */}
+      {/* TABS — Karyah v-3 pill style */}
       <div
-        className={`flex border-b shrink-0 ${borderColor} ${dm ? "bg-[#111b21]" : "bg-white"}`}
+        className={`px-1 py-2.5 border-b shrink-0 ${borderColor} ${
+          dm ? "bg-[#111b21]" : "bg-[#F8F4E8]"
+        }`}
       >
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => selectTab(tab.id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-[10px] font-semibold uppercase tracking-wider transition-colors cursor-pointer relative ${
-                isActive
-                  ? dm
-                    ? "text-emerald-400"
-                    : "text-emerald-600"
-                  : dm
-                  ? "text-gray-500 hover:text-gray-300"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              <Icon className="text-base" />
-              <span className="leading-tight text-center">{tab.label}</span>
-              {isActive && (
-                <span
-                  className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full ${
-                    dm ? "bg-emerald-400" : "bg-emerald-600"
+        <div
+          className={`p-1 rounded-2xl flex items-center gap-1 ${
+            dm
+              ? "bg-[#1c272e] border border-[#2a3942]"
+              : "bg-[#F3EDE2] border border-[#E8DFD3]"
+          }`}
+        >
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => selectTab(tab.id)}
+                className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 px-1 sm:px-2 rounded-xl text-[11px] sm:text-xs font-medium transition-all duration-150 cursor-pointer select-none ${
+                  isActive
+                    ? dm
+                      ? "bg-[#2a3942] text-[#FF8624] shadow-sm font-semibold"
+                      : "bg-white text-[#FF8624] shadow-sm font-semibold"
+                    : dm
+                      ? "text-gray-400 hover:text-gray-200"
+                      : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <Icon
+                  className={`text-sm shrink-0 ${
+                    isActive
+                      ? "text-[#FF8624]"
+                      : dm
+                        ? "text-gray-400"
+                        : "text-gray-400"
                   }`}
                 />
-              )}
-              {/* Badge for received */}
-              {tab.id === "received" && receivedRequests.length > 0 && (
-                <span className="absolute top-1.5 right-2 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[9px] font-bold">
-                  {receivedRequests.length > 9 ? "9+" : receivedRequests.length}
-                </span>
-              )}
-            </button>
-          );
-        })}
+                <span className="truncate">{tab.label}</span>
+                {/* Badge for received requests — filled circle count */}
+                {tab.id === "received" && receivedRequests.length > 0 && (
+                  <span className="min-w-[17px] h-[17px] px-1 inline-flex items-center justify-center rounded-full bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white text-[10px] font-bold shrink-0">
+                    {receivedRequests.length > 9
+                      ? "9+"
+                      : receivedRequests.length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* BODY */}
@@ -236,13 +257,12 @@ export default function ConnectionPanel({
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        className={`text-xs font-semibold flex items-center gap-1 px-2.5 py-0.5 rounded-full border ${
                           dm
-                            ? "bg-emerald-900/40 text-emerald-400"
-                            : "bg-emerald-50 text-emerald-700"
+                            ? "bg-green-950/40 text-green-400 border-green-800/50"
+                            : "bg-green-50 text-green-600 border-green-200"
                         }`}
-                      >
-                        Connected
+                      >Connected
                       </span>
                       <button
                         type="button"
@@ -274,7 +294,9 @@ export default function ConnectionPanel({
             <div className={`p-3 sticky top-0 z-10 ${panelBg} border-b ${borderColor}`}>
               <div
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl ${inputBg} border ${
-                  dm ? "border-transparent focus-within:border-emerald-500/40" : "border-transparent focus-within:border-emerald-500/40 focus-within:bg-white"
+                  dm
+                    ? "border-transparent focus-within:border-[#FF8624]"
+                    : "border-transparent focus-within:border-[#FF8624] focus-within:bg-[#F8F4E8]"
                 } transition-all`}
               >
                 <FiSearch className="text-gray-400 shrink-0 text-sm" />
@@ -346,32 +368,52 @@ export default function ConnectionPanel({
                       {/* Action button */}
                       {isAccepted ? (
                         <span
-                          className={`text-xs font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full ${
+                          className={`text-xs font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full border ${
                             dm
-                              ? "bg-emerald-900/40 text-emerald-400"
-                              : "bg-emerald-50 text-emerald-700"
+                              ? "bg-green-950/40 text-green-400 border-green-800/50"
+                              : "bg-green-50 text-green-600 border-green-200"
                           }`}
-                        >
-                          <FiCheck className="text-xs" /> Connected
+                        >Connected
                         </span>
                       ) : isPending ? (
-                        <span
-                          className={`text-xs font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full ${
-                            dm
-                              ? "bg-amber-900/30 text-amber-400"
-                              : "bg-amber-50 text-amber-600"
-                          }`}
-                        >
-                          <FiClock className="text-xs" /> Pending
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span
+                            className={`text-xs font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full ${
+                              dm
+                                ? "bg-amber-900/30 text-amber-400"
+                                : "bg-amber-50 text-amber-600 border border-amber-200/60"
+                            }`}
+                          > Pending
+                          </span>
+                          {cs?.isSender !== false && (
+                            <button
+                              onClick={() =>
+                                cancelRequest(cs?.connectionId || u._id)
+                              }
+                              disabled={
+                                cancellingId === (cs?.connectionId || u._id)
+                              }
+                              className={`text-xs font-medium px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
+                                dm
+                                  ? "border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500"
+                                  : "border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              title="Cancel connection request"
+                            >
+                              {cancellingId === (cs?.connectionId || u._id)
+                                ? "Cancelling..."
+                                : "Cancel"}
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <button
                           onClick={() => sendRequest(u._id)}
                           disabled={isSending}
                           className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
                             dm
-                              ? "border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-white"
-                              : "border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white"
+                              ? "border-[#FF8624] text-[#FF8624] hover:bg-[#e8873a] hover:text-white"
+                              : "border-[#FF8624] text-[#FF8624] hover:bg-[#e8873a] hover:text-white"
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           {isSending ? "Sending..." : "Connect"}
@@ -440,8 +482,8 @@ export default function ConnectionPanel({
                           title="Accept"
                           className={`w-8 h-8 flex items-center justify-center rounded-full transition cursor-pointer ${
                             dm
-                              ? "bg-emerald-700/50 text-emerald-300 hover:bg-emerald-600"
-                              : "bg-emerald-100 text-emerald-700 hover:bg-emerald-500 hover:text-white"
+                              ? "bg-[#FF8624]/50 text-[#FF8624] hover:bg-[#e8873a]"
+                              : "bg-[#fff4e6] text-[#FF8624] hover:bg-[#e8873a] hover:text-white"
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <FiCheck className="text-sm" />
@@ -472,7 +514,7 @@ export default function ConnectionPanel({
       {userToRemove && (
         <div
           onClick={() => !removeMutation.isPending && setUserToRemove(null)}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/5 animate-fadeIn"
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -574,7 +616,7 @@ export default function ConnectionPanel({
 function LoadingSpinner({ dm }) {
   return (
     <div className="flex items-center justify-center py-16">
-      <div className="w-7 h-7 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+      <div className="w-7 h-7 rounded-full border-2 border-[#FF8624] border-t-transparent animate-spin" />
     </div>
   );
 }

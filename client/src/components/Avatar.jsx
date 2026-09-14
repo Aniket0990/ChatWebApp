@@ -10,7 +10,7 @@ export default function Avatar({ src, name, className = "" }) {
 
   return (
     <div
-      className={`${className} shrink-0 rounded-full bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center justify-center select-none overflow-hidden`}
+      className={`${className} shrink-0 rounded-full bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white flex items-center justify-center select-none overflow-hidden`}
       title={name}
     >
       <svg viewBox="0 0 100 100" className="w-full h-full" aria-hidden="true">

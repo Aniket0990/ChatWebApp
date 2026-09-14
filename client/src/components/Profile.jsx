@@ -178,7 +178,7 @@ export default function Profile({
     <>
       <div
         className={`absolute inset-0 z-30 flex flex-col transition-transform duration-300 ease-in-out ${
-          darkMode ? "bg-[#111b21] text-[#e9edef]" : "bg-white text-gray-800"
+          darkMode ? "bg-[#111b21] text-[#e9edef]" : "bg-[#F8F4E8] text-gray-800"
         } ${
           isOpen
             ? "translate-x-0 max-lg:animate-slide-in-up"
@@ -199,7 +199,7 @@ export default function Profile({
           className={`h-16 px-4 flex items-center gap-4 shrink-0 shadow-sm transition-colors ${
             darkMode
               ? "bg-[#202c33] border-b border-[#222e35] text-white"
-              : "bg-emerald-600 text-white"
+              : "bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white text-white"
           }`}
         >
           <button
@@ -215,7 +215,7 @@ export default function Profile({
         {/* Profile Body */}
         <div
           className={`flex-1 overflow-y-auto p-6 flex flex-col items-center transition-colors ${
-            darkMode ? "bg-[#111b21]" : "bg-white"
+            darkMode ? "bg-[#111b21]" : "bg-[#F8F4E8]"
           }`}
         >
           {/* Profile Photo with Change Photo overlay */}
@@ -226,7 +226,7 @@ export default function Profile({
             <Avatar
               src={user.user.profilePic}
               name={user.user.name}
-              className="w-36 h-36 rounded-full object-cover shadow-md ring-4 ring-emerald-500/20 text-5xl"
+              className="w-36 h-36 rounded-full object-cover shadow-md text-5xl"
             />
             <div
               className={`absolute inset-0 bg-black/45 rounded-full flex flex-col items-center justify-center text-white ${
@@ -266,7 +266,7 @@ export default function Profile({
             >
               <span
                 className={`text-[11px] font-medium uppercase tracking-wider block mb-1 ${
-                  darkMode ? "text-gray-400" : "text-emerald-700"
+                  darkMode ? "text-gray-400" : "text-[#FF8624]"
                 }`}
               >
                 ABOUT
@@ -278,17 +278,17 @@ export default function Profile({
                       type="text"
                       value={aboutInput}
                       onChange={(e) => setAboutInput(e.target.value)}
-                      className={`flex-1 text-sm border-b-2 border-emerald-500 bg-transparent focus:outline-none py-1 ${
+                      className={`flex-1 text-sm border-b-2 border-[#FF8624] bg-transparent focus:outline-none py-1 ${
                         darkMode ? "text-white" : "text-gray-800"
                       }`}
                       autoFocus
                     />
                     <button
                       onClick={handleSaveAbout}
-                      className={`p-1.5 text-emerald-600 rounded-full cursor-pointer ${
+                      className={`p-1.5 text-[#FF8624] rounded-full cursor-pointer ${
                         darkMode
                           ? "hover:bg-[#202c33]"
-                          : "hover:bg-emerald-50"
+                          : "hover:bg-[#fff4e6]"
                       }`}
                       title="Save about"
                     >
@@ -322,8 +322,8 @@ export default function Profile({
                       }}
                       className={`p-1.5 rounded-full transition shrink-0 cursor-pointer ${
                         darkMode
-                          ? "text-gray-400 hover:text-emerald-400 hover:bg-[#202c33]"
-                          : "text-gray-400 hover:text-emerald-600 hover:bg-gray-50"
+                          ? "text-gray-400 hover:text-[#FF8624] hover:bg-[#202c33]"
+                          : "text-gray-400 hover:text-[#FF8624] hover:bg-gray-50"
                       }`}
                       title="Edit about"
                     >
@@ -342,7 +342,7 @@ export default function Profile({
             >
               <span
                 className={`text-[11px] font-medium uppercase tracking-wider block mb-1 ${
-                  darkMode ? "text-gray-400" : "text-emerald-700"
+                  darkMode ? "text-gray-400" : "text-[#FF8624]"
                 }`}
               >
                 NAME
@@ -354,17 +354,17 @@ export default function Profile({
                       type="text"
                       value={nameInput}
                       onChange={(e) => setNameInput(e.target.value)}
-                      className={`flex-1 text-sm border-b-2 border-emerald-500 bg-transparent focus:outline-none py-1 ${
+                      className={`flex-1 text-sm border-b-2 border-[#FF8624] bg-transparent focus:outline-none py-1 ${
                         darkMode ? "text-white" : "text-gray-800"
                       }`}
                       autoFocus
                     />
                     <button
                       onClick={handleSaveName}
-                      className={`p-1.5 text-emerald-600 rounded-full cursor-pointer ${
+                      className={`p-1.5 text-[#FF8624] rounded-full cursor-pointer ${
                         darkMode
                           ? "hover:bg-[#202c33]"
-                          : "hover:bg-emerald-50"
+                          : "hover:bg-[#fff4e6]"
                       }`}
                       title="Save name"
                     >
@@ -396,8 +396,8 @@ export default function Profile({
                       }}
                       className={`p-1.5 rounded-full transition shrink-0 cursor-pointer ${
                         darkMode
-                          ? "text-gray-400 hover:text-emerald-400 hover:bg-[#202c33]"
-                          : "text-gray-400 hover:text-emerald-600 hover:bg-gray-50"
+                          ? "text-gray-400 hover:text-[#FF8624] hover:bg-[#202c33]"
+                          : "text-gray-400 hover:text-[#FF8624] hover:bg-gray-50"
                       }`}
                       title="Edit name"
                     >
@@ -416,7 +416,7 @@ export default function Profile({
             >
               <span
                 className={`text-[11px] font-medium uppercase tracking-wider block mb-1 ${
-                  darkMode ? "text-gray-400" : "text-emerald-700"
+                  darkMode ? "text-gray-400" : "text-[#FF8624]"
                 }`}
               >
                 EMAIL
@@ -439,7 +439,7 @@ export default function Profile({
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all cursor-pointer select-none group ${
                   darkMode
                     ? "border-[#2a3942] bg-[#111b21] hover:bg-[#202c33]"
-                    : "border-gray-200 bg-gray-50/80 hover:bg-gray-100"
+                    : "border-[#E8E0CE] bg-[#EDE7D6] hover:bg-[#E8E0CE]"
                 }`}
                 title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
               >
@@ -466,7 +466,7 @@ export default function Profile({
                 </div>
                 <div
                   className={`w-11 h-6 shrink-0 flex items-center rounded-full p-1 transition-colors duration-300 ${
-                    darkMode ? "bg-emerald-500" : "bg-gray-300"
+                    darkMode ? "bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white" : "bg-gray-300"
                   }`}
                 >
                   <div
@@ -490,11 +490,11 @@ export default function Profile({
                 }}
                 className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-sm cursor-pointer ${
                   darkMode
-                    ? "border-[#2a3942] text-gray-200 hover:border-emerald-500 hover:text-emerald-400 hover:bg-[#202c33]"
-                    : "border-gray-200 text-gray-700 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50/40 bg-white"
+                    ? "border-[#2a3942] text-gray-200 hover:border-[#FF8624] hover:text-[#FF8624] hover:bg-[#202c33]"
+                    : "border-[#E8E0CE] text-gray-700 hover:border-[#FF8624] hover:text-[#FF8624] hover:bg-[#fff4e6]/40 bg-[#F3EEDD]"
                 }`}
               >
-                <FiLock className="text-sm text-emerald-600" />
+                <FiLock className="text-sm text-[#FF8624]" />
                 <span>Change Password</span>
               </button>
 
@@ -505,7 +505,7 @@ export default function Profile({
                 className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-sm cursor-pointer ${
                   darkMode
                     ? "border-red-900/50 text-red-400 hover:bg-red-950/20"
-                    : "border-red-200 text-red-600 hover:bg-red-50 bg-white"
+                    : "border-red-200 text-red-600 hover:bg-red-50 bg-[#F3EEDD]"
                 }`}
               >
                 <FiLogOut className="text-sm" />
@@ -523,7 +523,7 @@ export default function Profile({
             className={`rounded-2xl shadow-2xl border w-full max-w-sm p-6 space-y-4 transition-colors ${
               darkMode
                 ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
-                : "bg-white border-gray-200/80 text-gray-800 shadow-2xl"
+                : "bg-[#F8F4E8] border-[#E8E0CE] text-gray-800 shadow-2xl"
             }`}
           >
             <div className="flex items-center justify-between">
@@ -534,7 +534,7 @@ export default function Profile({
               >
                 <FiLock
                   className={
-                    darkMode ? "text-emerald-400" : "text-emerald-600"
+                    darkMode ? "text-[#FF8624]" : "text-[#FF8624]"
                   }
                 />{" "}
                 Change Password
@@ -566,8 +566,8 @@ export default function Profile({
               <div
                 className={`p-2.5 text-xs rounded-lg border ${
                   darkMode
-                    ? "text-emerald-400 bg-emerald-950/40 border-emerald-900/40"
-                    : "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    ? "text-[#FF8624] bg-[#FF8624]/10 border-[#FF8624]/20"
+                    : "text-[#FF8624] bg-[#fff4e6] border-[#FF8624]/30"
                 }`}
               >
                 {passwordSuccess}
@@ -588,7 +588,7 @@ export default function Profile({
                   required
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 ${
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#FF8624]/30 focus:border-[#FF8624] ${
                     darkMode
                       ? "border-[#2a3942] bg-[#111b21] text-white"
                       : "border-gray-200 bg-white text-gray-800"
@@ -610,7 +610,7 @@ export default function Profile({
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 ${
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#FF8624]/30 focus:border-[#FF8624] ${
                     darkMode
                       ? "border-[#2a3942] bg-[#111b21] text-white"
                       : "border-gray-200 bg-white text-gray-800"
@@ -632,7 +632,7 @@ export default function Profile({
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 ${
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#FF8624]/30 focus:border-[#FF8624] ${
                     darkMode
                       ? "border-[#2a3942] bg-[#111b21] text-white"
                       : "border-gray-200 bg-white text-gray-800"
@@ -655,7 +655,7 @@ export default function Profile({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-xs cursor-pointer"
+                  className="px-4 py-2 text-xs font-medium bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white hover:bg-[#e8873a] text-white rounded-lg transition shadow-xs cursor-pointer"
                 >
                   Update
                 </button>
@@ -672,7 +672,7 @@ export default function Profile({
             className={`rounded-2xl shadow-2xl border w-full max-w-sm p-6 space-y-4 transition-colors ${
               darkMode
                 ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
-                : "bg-white border-gray-200/80 text-gray-800 shadow-2xl"
+                : "bg-[#F8F4E8] border-[#E8E0CE] text-gray-800 shadow-2xl"
             }`}
           >
             <div className="flex items-center gap-3">

@@ -172,10 +172,25 @@ exports.declineRequest = async (req, res) => {
 };
 
 // DELETE /api/connection/cancel/:connectionId
-// Cancel a sent pending request
+// Cancel a sent pending request (supports connectionId or target receiverId)
 exports.cancelRequest = async (req, res) => {
   try {
-    const connection = await Connection.findById(req.params.connectionId);
+    const target = req.params.connectionId;
+    let connection = null;
+
+    // Check if target is a valid ObjectId and try finding by connection _id
+    if (target.match(/^[0-9a-fA-F]{24}$/)) {
+      connection = await Connection.findById(target);
+    }
+
+    // Fallback: target might be the receiver's userId
+    if (!connection) {
+      connection = await Connection.findOne({
+        sender: req.user.id,
+        receiver: target,
+        status: "pending",
+      });
+    }
 
     if (!connection) {
       return res.status(404).json({ message: "Connection request not found" });
@@ -186,18 +201,26 @@ exports.cancelRequest = async (req, res) => {
     }
 
     const receiverId = connection.receiver.toString();
-    const connectionId = connection._id;
+    const connectionId = connection._id.toString();
     await connection.deleteOne();
 
     const io = req.app.get("io");
     if (io) {
+      // Emit to receiver so their received requests list and badges update in real-time
       io.to(receiverId).emit("connection_request_cancelled", {
         senderId: req.user.id,
+        receiverId,
+        connectionId,
+      });
+      // Emit to sender so all their active devices/tabs update in real-time
+      io.to(req.user.id).emit("connection_request_cancelled", {
+        senderId: req.user.id,
+        receiverId,
         connectionId,
       });
     }
 
-    res.json({ message: "Request cancelled" });
+    res.json({ message: "Request cancelled", connectionId, receiverId });
   } catch (error) {
     console.error("cancelRequest error:", error);
     res.status(500).json({ message: "Failed to cancel request" });

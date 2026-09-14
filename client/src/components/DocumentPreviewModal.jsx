@@ -210,7 +210,7 @@ export default function DocumentPreviewModal({
     if (!resolvedUrl) {
       return (
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-gray-300 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-gray-300 border-t-[#FF8624] rounded-full animate-spin" />
         </div>
       );
     }
