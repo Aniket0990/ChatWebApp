@@ -381,17 +381,22 @@ export default function DocumentPreviewModal({
         className={`shadow-2xl flex flex-col overflow-hidden transition-all duration-200 w-full relative z-10 ${
           fullscreen
             ? "inset-0 rounded-none h-screen max-h-screen fixed"
-            : "max-w-4xl rounded-xl h-[80vh] max-h-[85vh]"
-        } ${darkMode ? "bg-[#111b21]" : "bg-white"}`}
+            : "max-w-4xl rounded-2xl border h-[80vh] max-h-[85vh]"
+        } ${
+          darkMode
+            ? "bg-[#111b21] border-[#2a3942]"
+            : "bg-[#FAF8F5] border-[#E8E2D6]"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className="flex items-center gap-3 px-4 py-2.5 border-b shrink-0"
-          style={{ borderColor: `${accentColor}22` }}
+          className={`flex items-center gap-3 px-4 py-2.5 border-b shrink-0 ${
+            darkMode ? "border-[#222e35] bg-[#202c33]" : "border-[#E8E2D6] bg-[#FAF8F5]"
+          }`}
         >
           <div
-            className="flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold"
+            className="flex items-center justify-center w-6 h-6 rounded-lg text-[10px] font-bold"
             style={{ background: `${accentColor}18`, color: accentColor }}
           >
             {fileType.toUpperCase().slice(0, 3)}
@@ -400,13 +405,13 @@ export default function DocumentPreviewModal({
           <div className="flex-1 min-w-0">
             <p
               className={`text-xs font-semibold truncate leading-tight ${
-                darkMode ? "text-gray-100" : "text-gray-800"
+                darkMode ? "text-gray-100" : "text-gray-900"
               }`}
               title={fileName}
             >
               {fileName}
             </p>
-            <p className="text-[9px] text-gray-400 leading-tight">{typeLabel}</p>
+            <p className="text-[10px] text-gray-400 font-medium leading-tight mt-0.5">{typeLabel}</p>
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
@@ -414,10 +419,10 @@ export default function DocumentPreviewModal({
               title={isDownloading ? "Downloading..." : "Download"}
               disabled={isDownloading}
               onClick={handleDownloadClick}
-              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors disabled:opacity-50 ${
+              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors disabled:opacity-50 cursor-pointer ${
                 darkMode
                   ? "bg-[#202c33] hover:bg-[#2a3942] text-gray-300"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-500"
+                  : "bg-[#F1ECE2] hover:bg-[#EBE4D6] text-gray-700"
               }`}
             >
               {isDownloading ? (
@@ -429,10 +434,10 @@ export default function DocumentPreviewModal({
             <button
               title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
               onClick={() => setFullscreen((f) => !f)}
-              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
+              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
                 darkMode
                   ? "bg-[#202c33] hover:bg-[#2a3942] text-gray-300"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-500"
+                  : "bg-[#F1ECE2] hover:bg-[#EBE4D6] text-gray-700"
               }`}
             >
               {fullscreen ? <FiMinimize2 size={13} /> : <FiMaximize2 size={13} />}

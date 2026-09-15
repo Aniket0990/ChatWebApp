@@ -62,10 +62,10 @@ export default function Sidebar({
 
   return (
     <div
-      className={`w-full lg:w-96 border-r flex flex-col shadow-sm relative overflow-hidden transition-colors duration-200 max-lg:absolute max-lg:inset-0 max-lg:z-40 max-lg:transition-transform max-lg:duration-300 ${
+      className={`w-full lg:w-[420px] xl:w-[450px] 2xl:w-[480px] shrink-0 border-r flex flex-col shadow-[4px_0_20px_rgba(0,0,0,0.03)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.35)] relative overflow-hidden transition-all duration-200 max-lg:absolute max-lg:inset-0 max-lg:z-40 max-lg:transition-transform max-lg:duration-300 ${
         mobileShowChat ? "max-lg:-translate-x-full" : ""
       } ${
-        darkMode ? "bg-[#111b21] border-[#222e35]" : "bg-[#F8F4E8] border-[#E8E0CE]"
+        darkMode ? "bg-[#111b21] border-[#222e35]" : "bg-[#FAF8F5] border-[#E8E2D6]"
       }`}
     >
       {/* REGULAR CHAT LIST SIDEBAR */}
@@ -73,7 +73,7 @@ export default function Sidebar({
         {/* SIDEBAR TOP HEADER */}
         <div
           className={`px-5 pt-4 pb-2 flex items-center justify-between shrink-0 transition-colors duration-200 ${
-            darkMode ? "bg-[#111b21]" : "bg-[#F8F4E8]"
+            darkMode ? "bg-[#111b21]" : "bg-[#FAF8F5]"
           }`}
         >
           <div className="flex items-center gap-2.5">
@@ -98,7 +98,7 @@ export default function Sidebar({
             className={`relative p-2 rounded-full transition-all cursor-pointer group ${
               darkMode
                 ? "text-gray-400 hover:text-[#FF8624] hover:bg-[#202c33]"
-                : "text-gray-500 hover:text-[#FF8624] hover:bg-[#fff4e6]"
+                : "text-gray-500 hover:text-[#FF8624] hover:bg-[#FFF2E2]"
             }`}
           >
             <FiUserPlus className="text-lg" />
@@ -115,14 +115,14 @@ export default function Sidebar({
           className={`px-4 py-2 shrink-0 border-b transition-colors duration-200 ${
             darkMode
               ? "bg-[#111b21] border-[#222e35]"
-              : "bg-[#F8F4E8] border-[#E8E0CE]"
+              : "bg-[#FAF8F5] border-[#E8E2D6]"
           }`}
         >
           <div
-            className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl border transition-all shadow-sm ${
+            className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl border transition-all shadow-xs ${
               darkMode
-                ? "bg-[#202c33] border-transparent text-[#e9edef] focus-within:border-[#FF8624]"
-                : "bg-[#EDE7D6] border-transparent text-gray-800 focus-within:border-[#FF8624] focus-within:bg-[#F8F4E8]"
+                ? "bg-[#202c33] border-transparent text-[#e9edef] focus-within:border-[#FF8624] focus-within:ring-2 focus-within:ring-[#FF8624]/20"
+                : "bg-[#F1ECE2] border-transparent text-gray-800 focus-within:border-[#FF8624] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#FF8624]/20"
             }`}
           >
             <FiSearch className="text-gray-400 text-sm shrink-0" />
@@ -153,7 +153,7 @@ export default function Sidebar({
         {/* DIRECT MESSAGES LIST */}
         <div
           className={`flex-1 overflow-y-auto transition-colors duration-200 ${
-            darkMode ? "bg-[#111b21]" : "bg-[#F8F4E8]"
+            darkMode ? "bg-[#111b21]" : "bg-[#FAF8F5]"
           }`}
         >
 
@@ -212,23 +212,23 @@ export default function Sidebar({
                   <div
                     key={u._id}
                     onClick={() => openChat(u)}
-                    className={`px-4 py-3 flex items-center gap-3.5 cursor-pointer transition-all border-b border-l-4 ${
-                      darkMode ? "border-b-[#202c33]" : "border-b-[#E8E0CE]"
+                    className={`px-4 py-3 flex items-center gap-3.5 cursor-pointer transition-all border-b border-l-[3.5px] ${
+                      darkMode ? "border-b-[#202c33]" : "border-b-[#E8E2D6]"
                     } ${
                       isSelected
                         ? darkMode
-                          ? "bg-[#2a3942] border-l-[#FF8624]"
-                          : "bg-[#fff4e6]/80 border-l-[#FF8624]"
+                          ? "bg-[#1f2c33] border-l-[#FF8624]"
+                          : "bg-[#F0EBE1] border-l-[#FF8624]"
                         : darkMode
-                          ? "hover:bg-[#202c33] border-l-transparent"
-                          : "hover:bg-[#EFE8D6] border-l-transparent"
+                          ? "hover:bg-[#1a252c] border-l-transparent"
+                          : "hover:bg-[#F5EFE6] border-l-transparent"
                     }`}
                   >
                     <div className="relative shrink-0">
                       <Avatar
                         src={u.profilePic}
                         name={u.name}
-                        className="w-12 h-12 rounded-full object-cover shadow-sm text-xl"
+                        className="w-12 h-12 rounded-full object-cover shadow-2xs text-xl"
                       />
                       <span
                         className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 ${
@@ -247,11 +247,11 @@ export default function Sidebar({
                       {/* Row 1: name + time */}
                       <div className="flex items-center justify-between gap-2">
                         <p
-                          className={`text-sm font-medium truncate leading-tight ${
+                          className={`text-sm font-semibold truncate leading-tight ${
                             isSelected
                               ? darkMode
-                                ? "text-orange-400 font-semibold"
-                                : "text-emerald-900 font-semibold"
+                                ? "text-orange-400"
+                                : "text-gray-900"
                               : darkMode
                                 ? "text-[#e9edef]"
                                 : "text-gray-800"
@@ -261,9 +261,7 @@ export default function Sidebar({
                         </p>
                         {u.lastMessage?.createdAt && (
                           <span
-                            className={`text-[10px] whitespace-nowrap shrink-0 leading-tight ${
-                              darkMode ? "text-gray-400" : "text-gray-400"
-                            }`}
+                            className="text-[10px] font-medium text-gray-400 whitespace-nowrap shrink-0 leading-tight"
                           >
                             {formatListTime(u.lastMessage.createdAt)}
                           </span>
@@ -273,7 +271,7 @@ export default function Sidebar({
                       {/* Row 2: preview + unread badge */}
                       <div className="flex items-center justify-between gap-2 mt-1">
                         {u.lastMessage ? (
-                          <p className="text-xs text-gray-500 dark:text-gray-200 truncate leading-tight flex-1">
+                          <p className="text-xs font-normal text-gray-500 dark:text-gray-400 truncate leading-tight flex-1">
                             {u.lastMessage.isMine && (
                               <span className="text-gray-500 dark:text-gray-400 font-medium">
                                 You:{" "}
@@ -284,7 +282,7 @@ export default function Sidebar({
                               : u.lastMessage.content}
                           </p>
                         ) : (
-                          <p className="text-xs text-gray-500 truncate leading-tight flex-1">
+                          <p className="text-xs font-normal text-gray-500 dark:text-gray-400 truncate leading-tight flex-1">
                             {u.isOnline ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                                 Online
@@ -304,7 +302,7 @@ export default function Sidebar({
                         )}
 
                         {u.unreadCount > 0 && (
-                          <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white text-white text-[10px] font-bold shrink-0">
+                          <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white text-[10px] font-bold shrink-0">
                             {u.unreadCount > 99 ? "99+" : u.unreadCount}
                           </span>
                         )}
@@ -318,42 +316,42 @@ export default function Sidebar({
 
         {/* SIDEBAR FOOTER (Profile Section with Settings Button) — desktop only */}
         <div
-          className={`border-t p-3 shrink-0 shadow-xs transition-colors duration-200 hidden lg:block ${
+          className={`border-t px-3 py-2.5 shrink-0 shadow-xs transition-colors duration-200 hidden lg:block ${
             darkMode
               ? "border-[#222e35] bg-[#111b21]"
-              : "border-[#E8E0CE] bg-[#F8F4E8]"
+              : "border-[#E8E2D6] bg-[#FAF8F5]"
           }`}
         >
-          <div className="flex items-center justify-between px-2 py-0.5">
+          <div className="flex items-center justify-between gap-2">
             <div
               onClick={() => setShowProfileSidebar(true)}
-              className="flex items-center gap-3 cursor-pointer group min-w-0 flex-1 py-0.5"
+              className="flex items-center gap-3 cursor-pointer group min-w-0 flex-1 p-1.5 -ml-1 rounded-xl hover:bg-[#F1ECE2]/70 dark:hover:bg-[#202c33]/70 transition-all"
               title="View Profile / Settings"
             >
               <div className="relative shrink-0">
                 <Avatar
                   src={user.user.profilePic}
                   name={user.user.name}
-                  className="w-10 h-10 rounded-full object-cover transition text-lg"
+                  className="w-10 h-10 rounded-full object-cover shadow-2xs text-lg"
                 />
                 <span
                   className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 ${
-                    darkMode ? "border-[#111b21]" : "border-white"
+                    darkMode ? "border-[#111b21]" : "border-[#FAF8F5]"
                   }`}
                 ></span>
               </div>
 
               <div className="min-w-0 flex-1">
                 <h4
-                  className={`font-semibold text-sm truncate leading-tight transition ${
+                  className={`font-semibold text-[15px] truncate leading-tight transition ${
                     darkMode
                       ? "text-[#e9edef] group-hover:text-[#FF8624]"
-                      : "text-gray-800 group-hover:text-[#FF8624]"
+                      : "text-gray-900 group-hover:text-[#FF8624]"
                   }`}
                 >
                   {user.user.name}
                 </h4>
-                <p className="text-[11px] text-gray-400 truncate leading-tight mt-0.5">
+                <p className="text-xs text-gray-400 font-normal truncate leading-tight mt-0.5">
                   {user.user.email}
                 </p>
               </div>
@@ -362,10 +360,10 @@ export default function Sidebar({
             <button
               type="button"
               onClick={() => setShowProfileSidebar(true)}
-              className={`p-2 rounded-full transition cursor-pointer shrink-0 ml-1 ${
+              className={`w-9 h-9 flex items-center justify-center rounded-full transition cursor-pointer shrink-0 ${
                 darkMode
                   ? "text-gray-400 hover:text-[#FF8624] hover:bg-[#202c33]"
-                  : "text-gray-500 hover:text-[#FF8624] hover:bg-[#EFE8D6]"
+                  : "text-gray-500 hover:text-[#FF8624] hover:bg-[#F1ECE2]"
               }`}
               title="Settings / Edit Profile"
             >
@@ -379,7 +377,7 @@ export default function Sidebar({
           className={`lg:hidden border-t flex items-stretch shrink-0 transition-colors duration-200 ${
             darkMode
               ? "border-[#222e35] bg-[#111b21]"
-              : "border-[#E8E0CE] bg-[#F8F4E8]"
+              : "border-[#E8E2D6] bg-[#FAF8F5]"
           }`}
         >
           <button

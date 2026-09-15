@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Chat from "./components/Chat";
@@ -14,12 +15,19 @@ function App() {
   return (
     <>
       <Routes>
-        {/* Default Route */}
-        <Route path="/" element={<Navigate to={user ? "/chat" : "/login"} />} />
+        {/* Public marketing site */}
+        <Route path="/" element={<Landing />} />
 
-        <Route path="/login" element={<Login />} />
+        {/* Auth — signed-in users skip straight to the app */}
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/chat" replace /> : <Login />}
+        />
 
-        <Route path="/register" element={<Register />} />
+        <Route
+          path="/register"
+          element={user ? <Navigate to="/chat" replace /> : <Register />}
+        />
 
         <Route
           path="/chat"

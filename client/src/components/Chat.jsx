@@ -1176,18 +1176,23 @@ export default function Chat() {
     }
   };
 
-  // SEARCH HELPER: Highlight matching text in message content
+  // MESSAGE CONTENT RENDERER (Supports search highlighting when search query is active)
   const renderMessageContent = (content) => {
-    if (!isSearching || !searchQuery.trim() || !content) return content;
-    const regex = new RegExp(
+    if (!content) return null;
+
+    if (!isSearching || !searchQuery.trim()) {
+      return content;
+    }
+
+    const searchRegex = new RegExp(
       `(${searchQuery.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")})`,
       "gi",
     );
-    const parts = content.split(regex);
-    return parts.map((part, i) =>
-      regex.test(part) ? (
+    const parts = content.split(searchRegex);
+    return parts.map((part, index) =>
+      searchRegex.test(part) ? (
         <mark
-          key={i}
+          key={index}
           className={`${
             darkMode
               ? "bg-amber-400 text-black font-semibold rounded-sm px-0.5"
@@ -1202,20 +1207,10 @@ export default function Chat() {
     );
   };
 
-  // PINNED MESSAGE CONTENT RENDERER (Highlights @mentions in blue like Karyah v3)
+  // PINNED MESSAGE CONTENT RENDERER
   const renderPinnedContent = (content) => {
     if (!content) return <span className="italic text-gray-400">📄 Attachment</span>;
-    const parts = content.split(/(@[a-zA-Z0-9_*~.-]+)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith("@")) {
-        return (
-          <span key={index} className="text-blue-600 dark:text-blue-400 font-medium">
-            {part}
-          </span>
-        );
-      }
-      return <span key={index}>{part}</span>;
-    });
+    return content;
   };
 
   // ATTACHMENT HELPERS (adapted from KARYAH-v3 Chatbox)
@@ -1353,7 +1348,7 @@ export default function Chat() {
   return (
     <div
       className={`chat-page-height flex select-none font-sans relative overflow-hidden ${
-        darkMode ? "dark bg-[#0c1317] text-[#e9edef]" : "bg-[#efeae2] text-gray-800"
+        darkMode ? "dark bg-[#0c1317] text-[#e9edef]" : "bg-[#F5EFE6] text-gray-800"
       }`}
     >
       <SEO
@@ -1386,7 +1381,7 @@ export default function Chat() {
             ? "max-lg:translate-x-0"
             : "max-lg:translate-x-full max-lg:pointer-events-none"
         } ${
-          darkMode ? "bg-[#0b141a]" : "bg-[#efeae2]"
+          darkMode ? "bg-[#0c1317]" : "bg-[#F5EFE6]"
         }`}
       >
         {selectedUser ? (
@@ -1412,8 +1407,8 @@ export default function Chat() {
 
             {/* CHAT HEADER */}
             <div
-              className={`h-14 sm:h-16 px-3 sm:px-6 border-b flex items-center justify-between shrink-0 shadow-sm z-20 transition-colors duration-200 ${
-                darkMode ? "bg-[#202c33] border-[#222e35]" : "bg-[#F8F4E8] border-[#E8E0CE]"
+              className={`h-14 sm:h-16 px-3 sm:px-6 border-b flex items-center justify-between shrink-0 shadow-xs z-20 transition-colors duration-200 ${
+                darkMode ? "bg-[#202c33] border-[#222e35]" : "bg-[#FAF8F5] border-[#E8E2D6]"
               }`}
             >
               <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
@@ -1423,7 +1418,7 @@ export default function Chat() {
                   className={`lg:hidden p-2 -ml-1 rounded-full transition cursor-pointer shrink-0 ${
                     darkMode
                       ? "text-gray-300 hover:bg-[#2a3942]"
-                      : "text-gray-600 hover:bg-[#EFE8D6]"
+                      : "text-gray-600 hover:bg-[#F2ECE0]"
                   }`}
                   title="Back to chats"
                 >
@@ -1485,10 +1480,10 @@ export default function Chat() {
               >
                 {isSearching ? (
                   <div
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border animate-fadeIn transition-all ${
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border animate-fadeIn transition-all shadow-xs ${
                       darkMode
                         ? "bg-[#111b21] border-[#222e35] text-[#e9edef] focus-within:border-[#FF8624]"
-                        : "bg-[#EDE7D6] border-[#E8E0CE] text-gray-800 focus-within:border-[#FF8624] focus-within:bg-[#F8F4E8] shadow-sm"
+                        : "bg-[#F1ECE2] border-[#E8E2D6] text-gray-800 focus-within:border-[#FF8624] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#FF8624]/20"
                     }`}
                   >
                     <FiSearch className="text-gray-400 text-sm shrink-0" />
@@ -1595,10 +1590,10 @@ export default function Chat() {
 
                     {showChatMenu && (
                       <div
-                        className={`absolute top-full mt-1.5 right-0 z-40 w-48 rounded-xl shadow-xl border py-1.5 text-xs animate-fadeIn ${
+                        className={`absolute top-full mt-1.5 right-0 z-40 w-48 rounded-2xl shadow-xl border p-1.5 text-xs animate-fadeIn ${
                           darkMode
                             ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
-                            : "bg-[#F8F4E8] border-[#E8E0CE] text-gray-700 shadow-lg"
+                            : "bg-[#FAF8F5] border-[#E8E2D6] text-gray-700 shadow-xl"
                         }`}
                       >
                         {/* Search Messages */}
@@ -1607,10 +1602,10 @@ export default function Chat() {
                             setShowChatMenu(false);
                             setIsSearching(true);
                           }}
-                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 font-medium transition cursor-pointer ${
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-medium transition cursor-pointer ${
                             darkMode
                               ? "hover:bg-[#111b21] text-[#e9edef]"
-                              : "hover:bg-[#EFE8D6] text-gray-700"
+                              : "hover:bg-[#F2ECE0] text-gray-700"
                           }`}
                         >
                           <FiSearch
@@ -1627,10 +1622,10 @@ export default function Chat() {
                             setShowChatMenu(false);
                             setShowClearChatConfirm(true);
                           }}
-                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 font-medium transition cursor-pointer ${
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-medium transition cursor-pointer ${
                             darkMode
                               ? "hover:bg-red-950/30 text-red-400"
-                              : "hover:bg-red-50/80 text-red-600"
+                              : "hover:bg-red-50 text-red-600"
                           }`}
                         >
                           <FiTrash2 className="text-sm" />
@@ -1640,10 +1635,10 @@ export default function Chat() {
                         {/* Close Chat */}
                         <button
                           onClick={handleCloseChat}
-                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 font-medium transition cursor-pointer ${
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-medium transition cursor-pointer ${
                             darkMode
                               ? "hover:bg-[#111b21] text-[#e9edef]"
-                              : "hover:bg-[#EFE8D6] text-gray-700"
+                              : "hover:bg-[#F2ECE0] text-gray-700"
                           }`}
                         >
                           <FiX
@@ -1675,7 +1670,7 @@ export default function Chat() {
                     className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer group"
                     title="Click to jump to message"
                   >
-                    <BsPinAngleFill className="text-[#ea580c] dark:text-emerald-400 text-sm sm:text-base shrink-0 group-hover:scale-110 transition-transform" />
+                    <BsPinAngleFill className="text-[#ea580c] dark:text-orange-400 text-sm sm:text-base shrink-0 group-hover:scale-110 transition-transform" />
                     <span
                       className={`font-semibold shrink-0 text-xs sm:text-[13px] ${
                         darkMode ? "text-white" : "text-gray-900"
@@ -1709,8 +1704,8 @@ export default function Chat() {
                             }}
                             className={`cursor-pointer transition-all duration-300 ${
                               idx === pinnedIndex % pinnedMessages.length
-                                ? "w-7 sm:w-10 h-1 bg-[#2563eb] rounded-full"
-                                : "w-3 sm:w-4 h-1 bg-gray-300/80 dark:bg-gray-600 hover:bg-gray-400 rounded-full"
+                                ? "w-7 sm:w-10 h-1 bg-[#FF8624] dark:bg-orange-400 rounded-full"
+                                : "w-3 sm:w-4 h-1 bg-gray-300/80 dark:bg-gray-600 hover:bg-[#FF8624]/60 rounded-full"
                             }`}
                             title={`Pinned message ${idx + 1}`}
                           />
@@ -1758,10 +1753,10 @@ export default function Chat() {
             >
               {Object.keys(groupedMessages).length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 text-sm">
-                  <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl mb-3 shadow-sm">
+                  <div className="w-16 h-16 rounded-full bg-orange-50 dark:bg-orange-950/40 text-[#FF8624] flex items-center justify-center text-2xl mb-3 shadow-sm">
                     💬
                   </div>
-                  <p className="font-medium text-gray-600">No messages yet</p>
+                  <p className="font-medium text-gray-600 dark:text-gray-300">No messages yet</p>
                   <p className="text-xs text-gray-400 mt-1">
                     Send a message to start the conversation
                   </p>
@@ -1772,10 +1767,10 @@ export default function Chat() {
                     {/* Centered Date Separator Pill */}
                     <div className="flex items-center justify-center my-3">
                       <span
-                        className={`text-[11px] font-medium px-3.5 py-1 rounded-full shadow-sm ${
+                        className={`text-[11px] font-semibold px-3.5 py-1 rounded-full shadow-2xs ${
                           darkMode
-                            ? "bg-[#182229] text-[#8696a0]"
-                            : "bg-white/95 text-[#54656f] border border-black/[0.05]"
+                            ? "bg-[#182229] text-[#8696a0] border border-[#2a3942]"
+                            : "bg-white/95 text-gray-600 border border-[#E8E2D6]/80"
                         }`}
                       >
                         {dateKey}
@@ -1814,10 +1809,10 @@ export default function Chat() {
                             {/* Sender Name above received message */}
                             {!isSelf && (
                               <span
-                                className={`text-[12px] font-medium ml-1 mb-1 ${
+                                className={`text-xs font-semibold ml-1 mb-1 ${
                                   darkMode
-                                    ? "text-emerald-400"
-                                    : "text-gray-600"
+                                    ? "text-orange-400"
+                                    : "text-gray-900"
                                 }`}
                               >
                                 {m.sender.name}
@@ -1826,59 +1821,70 @@ export default function Chat() {
 
                             {/* Message Bubble */}
                             <div
-                              className={`relative px-4 py-2.5 rounded-2xl transition-all shadow-sm border ${
+                              className={`relative transition-all shadow-sm border ${
+                                m.fileUrl && !m.content && !m.replyTo
+                                  ? "p-2 sm:p-2.5 rounded-2xl"
+                                  : "px-4 py-2.5 rounded-2xl"
+                              } ${
                                 isSelf
                                   ? darkMode
-                                    ? "bg-[#005c4b] text-[#e9edef] border-transparent rounded-tr-[4px]"
-                                    : "bg-[#d9fdd3] text-gray-900 border-black/[0.07] rounded-tr-[4px]"
+                                    ? "bg-[#382012] text-[#fdf4ee] border-orange-500/20 rounded-tr-[4px]"
+                                    : "bg-[#FFE3CC] text-gray-900 border-[#FFD0A8] rounded-tr-[4px]"
                                   : darkMode
                                     ? "bg-[#202c33] text-[#e9edef] border-transparent rounded-tl-[4px]"
-                                    : "bg-white text-gray-900 border-black/[0.08] rounded-tl-[4px]"
+                                    : "bg-white text-gray-900 border-[#E8E2D6]/80 rounded-tl-[4px] shadow-xs"
                               }`}
                             >
                               {/* Top Bar inside bubble: Reply preview badge + Quick Pin / 3-dots actions */}
-                              <div className="flex items-start justify-between gap-4 mb-1">
+                              <div
+                                className={`flex items-start justify-between gap-2 ${
+                                  m.replyTo ? "mb-1.5" : "mb-0.5"
+                                }`}
+                              >
                                 {/* Reply Quote Box if message is a reply */}
                                 {m.replyTo && (
                                   <div
                                     onClick={() =>
                                       scrollToMessage(m.replyTo._id)
                                     }
-                                    className={`cursor-pointer rounded-lg p-2 mb-1.5 border-l-[3px] border-[#1d4ed8] dark:border-[#60a5fa] text-xs w-full transition-colors ${
-                                      darkMode
-                                        ? "bg-black/30 hover:bg-black/40 text-gray-300"
-                                        : "bg-black/5 hover:bg-black/10 text-gray-600"
+                                    className={`cursor-pointer rounded-xl p-2.5 mb-1 border-l-[3.5px] border-[#FF8624] text-xs w-full transition-all ${
+                                      isSelf
+                                        ? darkMode
+                                          ? "bg-black/30 hover:bg-black/45 text-gray-300 border border-white/5"
+                                          : "bg-white/80 hover:bg-white text-gray-700 border border-[#FFD0A8]/80 shadow-2xs"
+                                        : darkMode
+                                          ? "bg-black/30 hover:bg-black/40 text-gray-300 border border-white/5"
+                                          : "bg-[#fff8f2] hover:bg-[#fff2e6] text-gray-700 border border-orange-200/80 shadow-2xs"
                                     }`}
                                   >
                                     <div
-                                      className={`font-semibold text-[11px] ${
+                                      className={`font-semibold text-xs ${
                                         darkMode
-                                          ? "text-[#60a5fa]"
-                                          : "text-[#1d4ed8]"
+                                          ? "text-orange-400"
+                                          : "text-[#ea580c]"
                                       }`}
                                     >
                                       {m.replyTo.sender?._id === user.user._id
                                         ? "You"
                                         : m.replyTo.sender?.name || "User"}
                                     </div>
-                                    <div className="truncate text-[11px] mt-0.5">
+                                    <div className="truncate text-xs mt-0.5 font-normal text-gray-600 dark:text-gray-300">
                                       {m.replyTo.content || "📄 Attachment"}
                                     </div>
                                   </div>
                                 )}
 
                                 {/* Hover icons on top right: Pin + 3 dots menu */}
-                                {/* NOTE: opacity must stay on the icon buttons, NOT on this container —
-                                    an opacity < 1 creates a stacking context that traps the dropdown's
-                                    z-index, letting later message bubbles paint over the open menu. */}
                                 <div className="ml-auto flex items-center gap-1">
                                   {/* Pin indicator or button */}
                                   <button
                                     onClick={() => handleTogglePin(m)}
-                                    className={`p-1 rounded hover:bg-black/5 transition opacity-70 group-hover:opacity-100 ${
+                                    className={`p-1 rounded-lg transition opacity-60 group-hover:opacity-100 ${
                                       m.isPinned
-                                        ? "text-amber-500"
-                                        : "text-gray-400 hover:text-gray-700"
+                                        ? "text-[#ea580c] dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30"
+                                        : darkMode
+                                          ? "text-gray-400 hover:text-orange-400 hover:bg-white/5"
+                                          : "text-gray-500 hover:text-[#ea580c] hover:bg-orange-50"
                                     }`}
                                     title={
                                       m.isPinned
@@ -1909,7 +1915,7 @@ export default function Chat() {
                                       <FiMoreVertical className="text-xs text-black dark:text-gray-300" />
                                     </button>
 
-                                    {/* Action Dropdown Menu (Karyah Style) */}
+                                    {/* Action Dropdown Menu */}
                                     {isMenuOpen && (
                                       <div
                                         className={`absolute z-50 ${
@@ -1918,19 +1924,19 @@ export default function Chat() {
                                             : "top-full mt-1"
                                         } ${
                                           isSelf ? "right-0" : "left-0"
-                                        } w-44 rounded-xl shadow-xl border py-1.5 text-xs animate-fadeIn ${
+                                        } w-48 rounded-2xl shadow-xl border p-1.5 text-xs animate-fadeIn ${
                                           darkMode
                                             ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
-                                            : "bg-white border-gray-100 text-gray-700 shadow-lg"
+                                            : "bg-[#FAF8F5] border-[#E8E2D6] text-gray-700 shadow-xl"
                                         }`}
                                       >
                                         {/* Reply */}
                                         <button
                                           onClick={() => handleStartReply(m)}
-                                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 font-medium transition cursor-pointer ${
+                                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-medium transition cursor-pointer ${
                                             darkMode
                                               ? "hover:bg-[#111b21] text-[#e9edef]"
-                                              : "hover:bg-gray-50 text-gray-700"
+                                              : "hover:bg-[#F2ECE0] text-gray-700"
                                           }`}
                                         >
                                           <FiCornerUpLeft
@@ -1947,10 +1953,10 @@ export default function Chat() {
                                         {isSelf && !m.isDeleted && (
                                           <button
                                             onClick={() => handleStartEdit(m)}
-                                            className={`w-full flex items-center gap-2.5 px-3.5 py-2 font-medium transition cursor-pointer ${
+                                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-medium transition cursor-pointer ${
                                               darkMode
                                                 ? "hover:bg-[#111b21] text-[#e9edef]"
-                                                : "hover:bg-gray-50 text-gray-700"
+                                                : "hover:bg-[#F2ECE0] text-gray-700"
                                             }`}
                                           >
                                             <FiEdit2
@@ -1967,10 +1973,10 @@ export default function Chat() {
                                         {/* Pin / Unpin */}
                                         <button
                                           onClick={() => handleTogglePin(m)}
-                                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 font-medium transition cursor-pointer ${
+                                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-medium transition cursor-pointer ${
                                             darkMode
                                               ? "hover:bg-[#111b21] text-[#e9edef]"
-                                              : "hover:bg-gray-50 text-gray-700"
+                                              : "hover:bg-[#F2ECE0] text-gray-700"
                                           }`}
                                         >
                                           <BsPinAngle
@@ -1991,7 +1997,7 @@ export default function Chat() {
                                             onClick={() =>
                                               handleDeleteMessage(m, "everyone")
                                             }
-                                            className={`w-full flex items-center gap-2.5 px-3.5 py-2 font-medium transition cursor-pointer ${
+                                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-medium transition cursor-pointer ${
                                               darkMode
                                                 ? "hover:bg-red-950/30 text-red-400"
                                                 : "hover:bg-red-50 text-red-600"
@@ -2007,7 +2013,7 @@ export default function Chat() {
                                           onClick={() =>
                                             handleDeleteMessage(m, "me")
                                           }
-                                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 font-medium transition cursor-pointer ${
+                                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-medium transition cursor-pointer ${
                                             darkMode
                                               ? "hover:bg-red-950/30 text-red-400"
                                               : "hover:bg-red-50 text-red-600"
@@ -2028,98 +2034,124 @@ export default function Chat() {
                                   This message was deleted
                                   </span>
                               ) : m.fileUrl ? (
-                                <div className="py-1">
+                                <div className="py-0.5">
                                   {(() => {
                                     const info = getAttachmentInfo(m.fileUrl);
                                     return info.isImage ? (
-                                      /* Images: click to open preview modal */
-                                      <img
-                                        src={m.fileUrl}
-                                        alt={info.name}
-                                        onClick={() =>
-                                          setPreviewFile({ url: m.fileUrl })
-                                        }
-                                        className="max-w-[240px] max-h-[240px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition"
-                                      />
+                                      /* Images: Click to open preview modal with subtle frame */
+                                      <div className="relative group/img overflow-hidden rounded-xl border border-black/5 dark:border-white/10 shadow-xs bg-black/5 dark:bg-black/20">
+                                        <img
+                                          src={m.fileUrl}
+                                          alt={info.name}
+                                          onClick={() =>
+                                            setPreviewFile({ url: m.fileUrl })
+                                          }
+                                          className="w-full max-w-[280px] sm:max-w-[320px] max-h-[320px] object-cover cursor-pointer hover:scale-[1.015] transition-transform duration-200 block"
+                                        />
+                                      </div>
                                     ) : (
-                                      /* Docs: Karyah-style card with preview & download */
+                                      /* Docs: Modern card with preview & download */
                                       <div
-                                        className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition max-w-[260px] ${
-                                          darkMode
-                                            ? "bg-black/20 border-[#2a3942]"
-                                            : "bg-black/[0.03] border-gray-200/80"
+                                        className={`flex items-center gap-3 p-2.5 rounded-xl border transition max-w-[280px] sm:max-w-[300px] ${
+                                          isSelf
+                                            ? darkMode
+                                              ? "bg-black/30 border-orange-500/20 text-[#fdf4ee] hover:bg-black/40 shadow-xs"
+                                              : "bg-white/90 border-[#FFD0A8]/90 text-gray-900 shadow-xs backdrop-blur-xs hover:bg-white hover:border-[#FF8624]/60"
+                                            : darkMode
+                                              ? "bg-black/25 border-[#2a3942] text-[#e9edef] hover:bg-black/35 shadow-xs"
+                                              : "bg-[#FAF7F2] border-orange-200/70 text-gray-900 shadow-xs hover:bg-[#F4EFE6]"
                                         }`}
                                       >
                                         <div
-                                          className="w-9 h-9 rounded-lg flex items-center justify-center text-[9px] font-bold shrink-0"
-                                          style={{
-                                            background: `${info.color}18`,
-                                            color: info.color,
-                                          }}
+                                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-bold tracking-wider shrink-0 shadow-2xs ${
+                                            info.type === "pdf"
+                                              ? "bg-red-50 text-red-600 border border-red-200/90 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/40"
+                                              : info.type === "video"
+                                                ? "bg-purple-50 text-purple-600 border border-purple-200/90 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/40"
+                                                : info.type === "audio"
+                                                  ? "bg-pink-50 text-pink-600 border border-pink-200/90 dark:bg-pink-950/40 dark:text-pink-400 dark:border-pink-800/40"
+                                                  : info.type === "image"
+                                                    ? "bg-amber-50 text-amber-600 border border-amber-200/90 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/40"
+                                                    : "bg-blue-50 text-blue-600 border border-blue-200/90 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/40"
+                                          }`}
                                         >
                                           {info.type.toUpperCase()}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                           <p
-                                            className={`text-xs font-medium truncate leading-tight ${
-                                              darkMode ? "text-gray-100" : "text-gray-800"
-                                            }`}
+                                            className="text-xs font-semibold truncate leading-tight text-gray-900 dark:text-gray-100"
                                             title={info.name}
                                           >
                                             {info.name}
                                           </p>
-                                          <p className="text-[10px] text-gray-400 leading-tight mt-0.5">
+                                          <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 leading-tight mt-0.5">
                                             {info.label}
                                           </p>
                                         </div>
-                                        <div className="flex items-center gap-1 shrink-0">
+                                        <div className="flex items-center gap-1.5 shrink-0">
                                           <button
                                             onClick={() =>
                                               setPreviewFile({ url: m.fileUrl })
                                             }
-                                            className={`w-7 h-7 flex items-center justify-center rounded-lg transition cursor-pointer ${
-                                              darkMode
-                                                ? "bg-white/5 hover:bg-white/10 text-gray-300"
-                                                : "bg-gray-100 hover:bg-gray-200 text-gray-500"
+                                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
+                                              isSelf
+                                                ? darkMode
+                                                  ? "bg-white/10 hover:bg-white/20 text-orange-300 border border-white/5"
+                                                  : "bg-orange-50 hover:bg-orange-100 text-[#ea580c] border border-orange-200/70 shadow-2xs"
+                                                : darkMode
+                                                  ? "bg-white/5 hover:bg-white/10 text-gray-300 border border-white/5"
+                                                  : "bg-white hover:bg-orange-50 text-gray-700 hover:text-[#ea580c] border border-orange-200/70 shadow-2xs"
                                             }`}
-                                            title="Preview"
+                                            title="Preview file"
                                           >
-                                            <FiEye size={13} />
+                                            <FiEye size={14} />
                                           </button>
                                           {/* Hide download for own sent files */}
                                           {!isSelf && (
                                             <button
                                               onClick={() =>
-                                                handleDownloadAttachment(m.fileUrl)
+                                                handleDownloadAttachment(
+                                                  m.fileUrl,
+                                                )
                                               }
-                                              className={`w-7 h-7 flex items-center justify-center rounded-lg transition cursor-pointer ${
+                                              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
                                                 darkMode
-                                                  ? "bg-white/5 hover:bg-white/10 text-gray-300"
-                                                  : "bg-gray-100 hover:bg-gray-200 text-gray-500"
+                                                  ? "bg-white/5 hover:bg-white/10 text-gray-300 border border-white/5"
+                                                  : "bg-white hover:bg-orange-50 text-gray-700 hover:text-[#ea580c] border border-orange-200/70 shadow-2xs"
                                               }`}
-                                              title="Download"
-                                            ><FiDownload size={13} />
+                                              title="Download file"
+                                            >
+                                              <FiDownload size={14} />
                                             </button>
                                           )}
                                         </div>
-</div>
-                                    )
+                                      </div>
+                                    );
                                   })()}
                                   {m.content && (
                                     <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">
-                                      {renderMessageContent(m.content)
-                                      }
+                                      {renderMessageContent(m.content, isSelf)}
                                     </p>
-                                    )}
+                                  )}
                                 </div>
                               ) : (
                                 <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                                  {renderMessageContent(m.content)}
+                                  {renderMessageContent(m.content, isSelf)}
                                 </p>
                               )}
 
                               {/* Bottom Row: Reaction button & emoji chips + timestamp & ticks */}
-                              <div className={`flex items-center justify-between gap-4 mt-2 pt-1 border-t ${darkMode ? "border-white/10" : "border-black/5"}`}>
+                              <div
+                                className={`flex items-center justify-between gap-4 mt-2 pt-1 border-t ${
+                                  isSelf
+                                    ? darkMode
+                                      ? "border-orange-500/20"
+                                      : "border-[#FFD0A8]/70"
+                                    : darkMode
+                                      ? "border-white/10"
+                                      : "border-black/5"
+                                }`}
+                              >
                                 {/* Left: Reaction Trigger Button & Emojis */}
                                 <div className="relative message-reaction-container flex items-center gap-1.5">
                                   {!m.isDeleted && (
@@ -2129,7 +2161,15 @@ export default function Chat() {
                                           isReactionOpen ? null : m._id,
                                         )
                                       }
-                                      className="text-gray-400 hover:text-amber-500 transition p-0.5 rounded hover:bg-black/5"
+                                      className={`transition p-1 rounded-lg ${
+                                        isReactionOpen
+                                          ? darkMode
+                                            ? "text-orange-400 bg-white/5"
+                                            : "text-gray-500 bg-orange-50"
+                                          : darkMode
+                                            ? "text-gray-500 hover:text-orange-400 hover:bg-white/5"
+                                            : "text-gray-500 hover:text-[#ea580c] hover:bg-orange-50"
+                                      }`}
                                       title="React"
                                     >
                                       <FiSmile className="text-xs" />
@@ -2139,12 +2179,12 @@ export default function Chat() {
                                   {/* Floating Quick Reaction Bar */}
                                   {isReactionOpen && (
                                     <div
-                                      className={`absolute bottom-6 z-50 flex items-center gap-1 px-2.5 py-1.5 rounded-full shadow-lg border animate-fadeIn whitespace-nowrap ${
+                                      className={`absolute bottom-6 z-50 flex items-center gap-1 px-2.5 py-1.5 rounded-full shadow-xl border animate-fadeIn whitespace-nowrap ${
                                         isSelf ? "right-0" : "left-0"
                                       } ${
                                         darkMode
                                           ? "bg-[#202c33] border-[#2a3942]"
-                                          : "bg-white border-gray-200/90 shadow-md"
+                                          : "bg-[#FAF8F5] border-[#E8E2D6] shadow-xl"
                                       }`}
                                     >
                                       {quickReactions.map((emoji) => (
@@ -2156,7 +2196,7 @@ export default function Chat() {
                                           className={`text-base hover:scale-125 transition-transform p-1 rounded-full cursor-pointer ${
                                             darkMode
                                               ? "hover:bg-[#111b21]"
-                                              : "hover:bg-gray-100"
+                                              : "hover:bg-[#F2ECE0]"
                                           }`}
                                         >
                                           {emoji}
@@ -2189,14 +2229,14 @@ export default function Chat() {
                                             onClick={() =>
                                               handleReaction(m, emoji)
                                             }
-                                            className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium border transition cursor-pointer ${
+                                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border transition cursor-pointer ${
                                               userReacted
                                                 ? darkMode
                                                   ? "bg-orange-950/60 border-orange-500/50 text-orange-300"
-                                                  : "bg-orange-50 border-orange-200 text-orange-700"
+                                                  : "bg-[#FFF2E2] border-orange-200 text-orange-700"
                                                 : darkMode
                                                   ? "bg-[#202c33] border-[#2a3942] text-[#e9edef] hover:bg-[#111b21]"
-                                                  : "bg-white/90 border-gray-200 text-gray-700 hover:bg-gray-100"
+                                                  : "bg-white border-[#E8E2D6] text-gray-700 hover:bg-[#FAF8F5]"
                                             }`}
                                           >
                                             <span>{emoji}</span>
@@ -2209,10 +2249,18 @@ export default function Chat() {
                                 </div>
 
                                 {/* Right: Edited tag, Timestamp & Read Status Ticks */}
-                                <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-normal shrink-0">
+                                <div className={`flex items-center gap-1.5 text-[10px] font-medium shrink-0 ${
+                                  isSelf
+                                    ? darkMode ? "text-orange-200/60" : "text-gray-500"
+                                    : darkMode ? "text-gray-400" : "text-gray-400"
+                                }`}>
                                   {m.isEdited && !m.isDeleted && (
-                                    <span className="text-gray-400 italic">
-                                      (edited)
+                                    <span className={`italic font-normal ${
+                                      isSelf
+                                        ? darkMode ? "text-orange-200/50" : "text-gray-500"
+                                        : darkMode ? "text-gray-500" : "text-gray-400"
+                                    }`}>
+                                      edited
                                     </span>
                                   )}
 
@@ -2227,17 +2275,17 @@ export default function Chat() {
                                   </span>
 
                                   {isSelf && !m.isDeleted && (
-                                    <span className="flex items-center">
+                                    <span className="flex justify-end items-center">
                                       {m.status === "sent" && (
                                         selectedUser?.isOnline
-                                          ? <IoCheckmarkDone className="text-gray-400 text-xs" />
-                                          : <IoCheckmark className="text-gray-400 text-xs" />
+                                          ? <IoCheckmarkDone className={`text-base ${darkMode ? "text-orange-200/50" : "text-[#c2521a]/60"}`} />
+                                          : <IoCheckmark className={`text-base ${darkMode ? "text-orange-200/50" : "text-[#c2521a]/60"}`} />
                                       )}
                                       {m.status === "delivered" && (
-                                        <IoCheckmarkDone className="text-gray-400 text-xs" />
+                                        <IoCheckmarkDone className={`text-base ${darkMode ? "text-orange-200/50" : "text-[#c2521a]/60"}`} />
                                       )}
                                       {m.status === "seen" && (
-                                        <IoCheckmarkDone className="text-[#53bdeb] text-xs font-semibold" />
+                                        <IoCheckmarkDone className="text-[#53bdeb] text-base" />
                                       )}
                                     </span>
                                   )}
@@ -2262,7 +2310,7 @@ export default function Chat() {
                 className={`absolute left-6 z-40 shadow-2xl rounded-2xl border overflow-hidden ${
                   replyingTo || editingMessage ? "bottom-32" : "bottom-20"
                 } ${
-                  darkMode ? "border-[#2a3942]" : "border-gray-200"
+                  darkMode ? "border-[#2a3942]" : "border-[#E8E2D6]"
                 }`}
               >
                 <EmojiPicker
@@ -2282,14 +2330,8 @@ export default function Chat() {
                 url={previewFile.url}
                 darkMode={darkMode}
                 onClose={() => setPreviewFile(null)}
-                /**
-                 * Resolve a stored url into something the browser can open:
-                 * - relative /api/... docs -> absolute url to our server (auth handled by caller)
-                 * - cloudinary urls -> fetched as blob (bypasses restricted-type 401)
-                 */
                 getFileUrl={async (u) => {
                   if (u?.startsWith("/")) {
-                    // Local doc — add token as query param so <iframe>/<img> can load it
                     return `${backendUrl}${u}?token=${user.token}`;
                   }
                   try {
@@ -2317,7 +2359,7 @@ export default function Chat() {
                 className={`absolute right-6 bottom-24 z-30 w-10 h-10 rounded-full shadow-lg border flex items-center justify-center transition-all hover:scale-110 active:scale-95 animate-fadeIn cursor-pointer ${
                   darkMode
                     ? "bg-[#202c33] text-gray-200 hover:text-[#FF8624] border-[#2a3942]"
-                    : "bg-white text-gray-700 hover:text-[#FF8624] border-gray-200"
+                    : "bg-white text-gray-700 hover:text-[#FF8624] border-[#E8E2D6]"
                 }`}
                 title="Scroll to Latest Message"
               >
@@ -2329,14 +2371,14 @@ export default function Chat() {
             {showClearChatConfirm && (
               <div
                 onClick={() => setShowClearChatConfirm(false)}
-                className="absolute inset-0 z-[100] flex items-center justify-center p-4 bg-black/5 animate-fadeIn"
+                className="absolute inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fadeIn"
               >
                 <div
                   onClick={(e) => e.stopPropagation()}
                   className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl border transform transition-all ${
                     darkMode
-                      ? "bg-[#111b21] border-[#222e35] text-[#e9edef]"
-                      : "bg-white border-gray-100 text-gray-800"
+                      ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
+                      : "bg-[#FAF8F5] border-[#E8E2D6] text-gray-800"
                   }`}
                 >
                   <div className="flex flex-col items-center text-center">
@@ -2352,7 +2394,7 @@ export default function Chat() {
                         onClick={() => setShowClearChatConfirm(false)}
                         className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
                           darkMode
-                            ? "border-[#2a3942] text-gray-300 hover:bg-[#202c33]"
+                            ? "border-[#2a3942] text-gray-300 hover:bg-[#111b21]"
                             : "border-gray-200 text-gray-700 hover:bg-gray-100"
                         }`}
                       >
@@ -2360,7 +2402,7 @@ export default function Chat() {
                       </button>
                       <button
                         onClick={handleClearChat}
-                        className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white transition cursor-pointer"
+                        className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white transition cursor-pointer shadow-xs"
                       >
                         Clear
                       </button>
@@ -2374,26 +2416,26 @@ export default function Chat() {
             <div className="p-2.5 sm:p-3.5 shrink-0 bg-transparent">
               {/* WhatsApp Unified Input Pill / Card */}
               <div
-                className={`transition-all shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
+                className={`transition-all shadow-[0_2px_12px_rgba(0,0,0,0.04)] ${
                   replyingTo || editingMessage
                     ? "rounded-2xl sm:rounded-[22px] flex flex-col"
-                    : "rounded-full flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2"
+                    : "rounded-full flex items-center gap-1 sm:gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2"
                 } ${
                   darkMode
-                    ? "bg-[#2a3942] text-[#e9edef]"
+                    ? "bg-[#202c33] text-[#e9edef]"
                     : "bg-white text-gray-800"
                 }`}
               >
                 {/* Reply / Edit Preview (Integrated inside the input card, WhatsApp Web style) */}
                 {(replyingTo || editingMessage) && (
-                  <div className="pt-2.5 px-3.5 sm:px-4 pb-1 flex items-start justify-between gap-3 animate-fadeIn">
+                  <div className="pt-2.5 px-3.5 sm:px-4 pb-1 flex items-start justify-between gap-3 animate-fadeIn border-b border-[#F0EAE0] dark:border-white/5">
                     <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                      {/* Dark blue vertical bar */}
+                      {/* Orange brand vertical bar */}
                       <span
                         className={`w-1 self-stretch rounded-full shrink-0 mt-0.5 ${
                           editingMessage
                             ? "bg-amber-500"
-                            : "bg-[#1d4ed8] dark:bg-[#60a5fa]"
+                            : "bg-[#FF8624]"
                         }`}
                       />
 
@@ -2404,7 +2446,7 @@ export default function Chat() {
                               ? darkMode
                                 ? "text-amber-400"
                                 : "text-amber-600"
-                              : "text-[#1d4ed8] dark:text-[#60a5fa]"
+                              : "text-[#ea580c] dark:text-orange-400"
                           }`}
                         >
                           {replyingTo ? (

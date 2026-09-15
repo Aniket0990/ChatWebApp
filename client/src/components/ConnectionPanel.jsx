@@ -117,12 +117,12 @@ export default function ConnectionPanel({
   const dm = darkMode;
 
   const cardBg = dm ? "bg-[#202c33]" : "bg-[#F3EEDD]";
-  const cardHover = dm ? "hover:bg-[#2a3942]" : "hover:bg-[#EFE8D6]";
+  const cardHover = dm ? "hover:bg-[#202c33]" : "hover:bg-[#F2ECE0]";
   const textPrimary = dm ? "text-[#e9edef]" : "text-gray-800";
   const textSub = "text-gray-400";
-  const panelBg = dm ? "bg-[#111b21]" : "bg-[#F8F4E8]";
-  const borderColor = dm ? "border-[#222e35]" : "border-[#E8E0CE]";
-  const inputBg = dm ? "bg-[#202c33] text-[#e9edef]" : "bg-[#EDE7D6] text-gray-800";
+  const panelBg = dm ? "bg-[#111b21]" : "bg-[#FAF8F5]";
+  const borderColor = dm ? "border-[#222e35]" : "border-[#E8E2D6]";
+  const inputBg = dm ? "bg-[#202c33] text-[#e9edef]" : "bg-[#F1ECE2] text-gray-800";
 
   // ---------- JSX ----------
   return (
@@ -133,40 +133,37 @@ export default function ConnectionPanel({
     >
       {/* HEADER */}
       <div
-        className={`flex items-center gap-3 px-4 py-3.5 border-b shrink-0 ${borderColor} ${
-          dm ? "bg-[#202c33]" : "bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white"
+        className={`h-16 px-4 flex items-center gap-3 border-b shrink-0 transition-colors shadow-xs ${borderColor} ${
+          dm ? "bg-[#202c33] text-[#e9edef]" : "bg-[#FAF8F5] text-gray-900"
         }`}
       >
         <button
           onClick={handleClose}
-          className={`p-1.5 rounded-full transition cursor-pointer ${
+          className={`p-2 rounded-full transition cursor-pointer ${
             dm
-              ? "text-gray-300 hover:text-white hover:bg-white/10"
-              : "text-white/80 hover:text-white hover:bg-white/20"
+              ? "text-gray-300 hover:text-[#FF8624] hover:bg-white/10"
+              : "text-gray-600 hover:text-[#FF8624] hover:bg-[#FFF2E2]"
           }`}
+          title="Back to chats"
         >
           <FiArrowLeft className="text-xl" />
         </button>
-        <h2
-          className={`text-base font-semibold tracking-tight ${
-            dm ? textPrimary : "text-white"
-          }`}
-        >
+        <h2 className="text-lg font-bold tracking-tight">
           Connections
         </h2>
       </div>
 
       {/* TABS — Karyah v-3 pill style */}
       <div
-        className={`px-1 py-2.5 border-b shrink-0 ${borderColor} ${
-          dm ? "bg-[#111b21]" : "bg-[#F8F4E8]"
+        className={`px-3 py-2.5 border-b shrink-0 transition-colors ${borderColor} ${
+          dm ? "bg-[#111b21]" : "bg-[#FAF8F5]"
         }`}
       >
         <div
-          className={`p-1 rounded-2xl flex items-center gap-1 ${
+          className={`p-1 rounded-xl flex items-center gap-1 border transition-all ${
             dm
-              ? "bg-[#1c272e] border border-[#2a3942]"
-              : "bg-[#F3EDE2] border border-[#E8DFD3]"
+              ? "bg-[#1c272e] border-[#2a3942]"
+              : "bg-[#F1ECE2] border-[#E8E2D6]"
           }`}
         >
           {TABS.map((tab) => {
@@ -177,23 +174,23 @@ export default function ConnectionPanel({
               <button
                 key={tab.id}
                 onClick={() => selectTab(tab.id)}
-                className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 px-1 sm:px-2 rounded-xl text-[11px] sm:text-xs font-medium transition-all duration-150 cursor-pointer select-none ${
+                className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 px-1 sm:px-2 rounded-lg text-[11px] sm:text-xs font-semibold transition-all duration-150 cursor-pointer select-none ${
                   isActive
                     ? dm
-                      ? "bg-[#2a3942] text-[#FF8624] shadow-sm font-semibold"
-                      : "bg-white text-[#FF8624] shadow-sm font-semibold"
+                      ? "bg-[#2a3942] text-orange-400 shadow-xs"
+                      : "bg-white text-[#ea580c] shadow-xs"
                     : dm
                       ? "text-gray-400 hover:text-gray-200"
-                      : "text-gray-500 hover:text-gray-700"
+                      : "text-gray-500 hover:text-gray-800"
                 }`}
               >
                 <Icon
                   className={`text-sm shrink-0 ${
                     isActive
-                      ? "text-[#FF8624]"
-                      : dm
-                        ? "text-gray-400"
-                        : "text-gray-400"
+                      ? dm
+                        ? "text-orange-400"
+                        : "text-[#ea580c]"
+                      : "text-gray-400"
                   }`}
                 />
                 <span className="truncate">{tab.label}</span>
@@ -252,17 +249,18 @@ export default function ConnectionPanel({
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${textPrimary}`}>{c.name}</p>
-                      <p className={`text-xs truncate ${textSub}`}>{c.email}</p>
+                      <p className={`text-sm font-semibold truncate ${textPrimary}`}>{c.name}</p>
+                      <p className={`text-xs font-normal truncate ${textSub}`}>{c.email}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span
-                        className={`text-xs font-semibold flex items-center gap-1 px-2.5 py-0.5 rounded-full border ${
+                        className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-0.5 rounded-full border ${
                           dm
-                            ? "bg-green-950/40 text-green-400 border-green-800/50"
-                            : "bg-green-50 text-green-600 border-green-200"
+                            ? "bg-emerald-950/40 text-emerald-400 border-emerald-800/50"
+                            : "bg-emerald-50 text-emerald-600 border-emerald-200"
                         }`}
-                      >Connected
+                      >
+                        Connected
                       </span>
                       <button
                         type="button"
@@ -296,7 +294,7 @@ export default function ConnectionPanel({
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl ${inputBg} border ${
                   dm
                     ? "border-transparent focus-within:border-[#FF8624]"
-                    : "border-transparent focus-within:border-[#FF8624] focus-within:bg-[#F8F4E8]"
+                    : "border-transparent focus-within:border-[#FF8624] focus-within:bg-[#FAF8F5]"
                 } transition-all`}
               >
                 <FiSearch className="text-gray-400 shrink-0 text-sm" />
@@ -361,29 +359,31 @@ export default function ConnectionPanel({
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${textPrimary}`}>{u.name}</p>
-                        <p className={`text-xs truncate ${textSub}`}>{u.email}</p>
+                        <p className={`text-sm font-semibold truncate ${textPrimary}`}>{u.name}</p>
+                        <p className={`text-xs font-normal truncate ${textSub}`}>{u.email}</p>
                       </div>
 
                       {/* Action button */}
                       {isAccepted ? (
                         <span
-                          className={`text-xs font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full border ${
+                          className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full border ${
                             dm
-                              ? "bg-green-950/40 text-green-400 border-green-800/50"
-                              : "bg-green-50 text-green-600 border-green-200"
+                              ? "bg-emerald-950/40 text-emerald-400 border-emerald-800/50"
+                              : "bg-emerald-50 text-emerald-600 border-emerald-200"
                           }`}
-                        >Connected
+                        >
+                          Connected
                         </span>
                       ) : isPending ? (
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span
-                            className={`text-xs font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full ${
+                            className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full ${
                               dm
                                 ? "bg-amber-900/30 text-amber-400"
                                 : "bg-amber-50 text-amber-600 border border-amber-200/60"
                             }`}
-                          > Pending
+                          >
+                            Pending
                           </span>
                           {cs?.isSender !== false && (
                             <button
@@ -393,7 +393,7 @@ export default function ConnectionPanel({
                               disabled={
                                 cancellingId === (cs?.connectionId || u._id)
                               }
-                              className={`text-xs font-medium px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
+                              className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
                                 dm
                                   ? "border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500"
                                   : "border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
@@ -410,7 +410,7 @@ export default function ConnectionPanel({
                         <button
                           onClick={() => sendRequest(u._id)}
                           disabled={isSending}
-                          className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                          className={`text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${
                             dm
                               ? "border-[#FF8624] text-[#FF8624] hover:bg-[#e8873a] hover:text-white"
                               : "border-[#FF8624] text-[#FF8624] hover:bg-[#e8873a] hover:text-white"
@@ -467,10 +467,10 @@ export default function ConnectionPanel({
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${textPrimary}`}>
+                        <p className={`text-sm font-semibold truncate ${textPrimary}`}>
                           {req.sender?.name}
                         </p>
-                        <p className={`text-xs truncate ${textSub}`}>{req.sender?.email}</p>
+                        <p className={`text-xs font-normal truncate ${textSub}`}>{req.sender?.email}</p>
                         <p className="text-[10px] text-gray-400 mt-0.5">Wants to connect</p>
                       </div>
 
@@ -520,8 +520,8 @@ export default function ConnectionPanel({
             onClick={(e) => e.stopPropagation()}
             className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl border transform transition-all animate-scaleUp ${
               dm
-                ? "bg-[#111b21] border-[#222e35] text-[#e9edef]"
-                : "bg-white border-gray-100 text-gray-800"
+                ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
+                : "bg-[#FAF8F5] border-[#E8E2D6] text-gray-800"
             }`}
           >
             <div className="flex flex-col items-center text-center">
@@ -541,8 +541,8 @@ export default function ConnectionPanel({
 
               {/* User Card Preview */}
               <div
-                className={`w-full flex items-center gap-3 p-3 rounded-xl mb-5 ${
-                  dm ? "bg-[#202c33]" : "bg-gray-50 border border-gray-100"
+                className={`w-full flex items-center gap-3 p-3 rounded-xl mb-5 border ${
+                  dm ? "bg-[#111b21] border-[#2a3942]" : "bg-white border-[#E8E2D6]"
                 }`}
               >
                 <Avatar
@@ -554,7 +554,7 @@ export default function ConnectionPanel({
                   <p className={`text-sm font-semibold truncate ${textPrimary}`}>
                     {userToRemove.name}
                   </p>
-                  <p className={`text-xs truncate ${textSub}`}>
+                  <p className={`text-xs font-normal truncate ${textSub}`}>
                     {userToRemove.email}
                   </p>
                 </div>
@@ -568,7 +568,7 @@ export default function ConnectionPanel({
                   onClick={() => setUserToRemove(null)}
                   className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
                     dm
-                      ? "border-[#2a3942] text-gray-300 hover:bg-[#202c33]"
+                      ? "border-[#2a3942] text-gray-300 hover:bg-[#111b21]"
                       : "border-gray-200 text-gray-700 hover:bg-gray-100"
                   } disabled:opacity-50`}
                 >
@@ -591,7 +591,7 @@ export default function ConnectionPanel({
                       },
                     );
                   }}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50"
                 >
                   {removeMutation.isPending ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

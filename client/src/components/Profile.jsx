@@ -178,7 +178,7 @@ export default function Profile({
     <>
       <div
         className={`absolute inset-0 z-30 flex flex-col transition-transform duration-300 ease-in-out ${
-          darkMode ? "bg-[#111b21] text-[#e9edef]" : "bg-[#F8F4E8] text-gray-800"
+          darkMode ? "bg-[#111b21] text-[#e9edef]" : "bg-[#FAF8F5] text-gray-800"
         } ${
           isOpen
             ? "translate-x-0 max-lg:animate-slide-in-up"
@@ -196,26 +196,30 @@ export default function Profile({
 
         {/* Profile Header */}
         <div
-          className={`h-16 px-4 flex items-center gap-4 shrink-0 shadow-sm transition-colors ${
+          className={`h-16 px-4 flex items-center gap-3 shrink-0 shadow-xs border-b transition-colors ${
             darkMode
-              ? "bg-[#202c33] border-b border-[#222e35] text-white"
-              : "bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white text-white"
+              ? "bg-[#202c33] border-[#222e35] text-[#e9edef]"
+              : "bg-[#FAF8F5] border-[#E8E2D6] text-gray-900"
           }`}
         >
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-white/10 rounded-full transition cursor-pointer"
+            className={`p-2 rounded-full transition cursor-pointer ${
+              darkMode
+                ? "text-gray-300 hover:text-[#FF8624] hover:bg-white/10"
+                : "text-gray-600 hover:text-[#FF8624] hover:bg-[#FFF2E2]"
+            }`}
             title="Back to chats"
           >
             <FiArrowLeft className="text-xl" />
           </button>
-          <h2 className="text-base font-semibold tracking-wide">Edit profile</h2>
+          <h2 className="text-lg font-bold tracking-tight">Edit profile</h2>
         </div>
 
         {/* Profile Body */}
         <div
           className={`flex-1 overflow-y-auto p-6 flex flex-col items-center transition-colors ${
-            darkMode ? "bg-[#111b21]" : "bg-[#F8F4E8]"
+            darkMode ? "bg-[#111b21]" : "bg-[#FAF8F5]"
           }`}
         >
           {/* Profile Photo with Change Photo overlay */}
@@ -261,15 +265,15 @@ export default function Profile({
             {/* About Section */}
             <div
               className={`border-b pb-3 ${
-                darkMode ? "border-[#222e35]" : "border-gray-200"
+                darkMode ? "border-[#222e35]" : "border-[#E8E2D6]"
               }`}
             >
               <span
-                className={`text-[11px] font-medium uppercase tracking-wider block mb-1 ${
-                  darkMode ? "text-gray-400" : "text-[#FF8624]"
+                className={`text-[12px] font-bold tracking-wider block mb-1 ${
+                  darkMode ? "text-orange-400" : "text-[#ea580c]"
                 }`}
               >
-                ABOUT
+                About
               </span>
               <div className="flex items-center justify-between gap-2">
                 {editingAbout ? (
@@ -337,15 +341,15 @@ export default function Profile({
             {/* Name Section */}
             <div
               className={`border-b pb-3 ${
-                darkMode ? "border-[#222e35]" : "border-gray-200"
+                darkMode ? "border-[#222e35]" : "border-[#E8E2D6]"
               }`}
             >
               <span
-                className={`text-[11px] font-medium uppercase tracking-wider block mb-1 ${
-                  darkMode ? "text-gray-400" : "text-[#FF8624]"
+                className={`text-[12px] font-bold tracking-wider block mb-1 ${
+                  darkMode ? "text-orange-400" : "text-[#ea580c]"
                 }`}
               >
-                NAME
+                Name
               </span>
               <div className="flex items-center justify-between gap-2">
                 {editingName ? (
@@ -384,7 +388,7 @@ export default function Profile({
                   <>
                     <p
                       className={`text-sm font-semibold truncate flex-1 ${
-                        darkMode ? "text-[#e9edef]" : "text-gray-800"
+                        darkMode ? "text-[#e9edef]" : "text-gray-900"
                       }`}
                     >
                       {user.user.name}
@@ -411,15 +415,15 @@ export default function Profile({
             {/* Email Section */}
             <div
               className={`border-b pb-3 ${
-                darkMode ? "border-[#222e35]" : "border-gray-200"
+                darkMode ? "border-[#222e35]" : "border-[#E8E2D6]"
               }`}
             >
               <span
-                className={`text-[11px] font-medium uppercase tracking-wider block mb-1 ${
-                  darkMode ? "text-gray-400" : "text-[#FF8624]"
+                className={`text-[12px] font-bold tracking-wider block mb-1 ${
+                  darkMode ? "text-orange-400" : "text-[#ea580c]"
                 }`}
               >
-                EMAIL
+                Email
               </span>
               <p
                 className={`text-sm font-medium ${
@@ -436,10 +440,10 @@ export default function Profile({
               <div
                 id="profile-theme-toggle"
                 onClick={() => setDarkMode((prev) => !prev)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all cursor-pointer select-none group ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-all cursor-pointer select-none group shadow-xs ${
                   darkMode
-                    ? "border-[#2a3942] bg-[#111b21] hover:bg-[#202c33]"
-                    : "border-[#E8E0CE] bg-[#EDE7D6] hover:bg-[#E8E0CE]"
+                    ? "border-[#2a3942] bg-[#202c33] hover:bg-[#28363f]"
+                    : "border-[#E8E2D6] bg-[#F1ECE2] hover:bg-[#EBE4D6]"
                 }`}
                 title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
               >
@@ -451,7 +455,7 @@ export default function Profile({
                   )}
                   <div className="flex flex-col min-w-0 text-left">
                     <span
-                      className={`text-sm font-medium leading-tight ${
+                      className={`text-sm font-semibold leading-tight ${
                         darkMode ? "text-[#e9edef]" : "text-gray-800"
                       }`}
                     >
@@ -488,10 +492,10 @@ export default function Profile({
                   setPasswordSuccess("");
                   setShowPasswordModal(true);
                 }}
-                className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-sm cursor-pointer ${
+                className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-xs cursor-pointer ${
                   darkMode
-                    ? "border-[#2a3942] text-gray-200 hover:border-[#FF8624] hover:text-[#FF8624] hover:bg-[#202c33]"
-                    : "border-[#E8E0CE] text-gray-700 hover:border-[#FF8624] hover:text-[#FF8624] hover:bg-[#fff4e6]/40 bg-[#F3EEDD]"
+                    ? "border-[#2a3942] text-gray-200 bg-[#111b21] hover:border-[#FF8624] hover:text-[#FF8624] hover:bg-[#202c33]"
+                    : "border-[#E8E2D6] text-gray-700 bg-[#FAF8F5] hover:border-[#FF8624] hover:text-[#FF8624] hover:bg-[#FFF2E2]"
                 }`}
               >
                 <FiLock className="text-sm text-[#FF8624]" />
@@ -502,10 +506,10 @@ export default function Profile({
               <button
                 type="button"
                 onClick={() => setShowLogoutConfirm(true)}
-                className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-sm cursor-pointer ${
+                className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-semibold transition-all shadow-xs cursor-pointer ${
                   darkMode
-                    ? "border-red-900/50 text-red-400 hover:bg-red-950/20"
-                    : "border-red-200 text-red-600 hover:bg-red-50 bg-[#F3EEDD]"
+                    ? "border-red-900/40 text-red-400 bg-[#111b21] hover:bg-red-950/20"
+                    : "border-red-200 text-red-600 bg-[#FAF8F5] hover:bg-red-50"
                 }`}
               >
                 <FiLogOut className="text-sm" />
@@ -518,30 +522,28 @@ export default function Profile({
 
       {/* CHANGE PASSWORD POPUP MODAL */}
       {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-fadeIn">
           <div
             className={`rounded-2xl shadow-2xl border w-full max-w-sm p-6 space-y-4 transition-colors ${
               darkMode
                 ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
-                : "bg-[#F8F4E8] border-[#E8E0CE] text-gray-800 shadow-2xl"
+                : "bg-[#FAF8F5] border-[#E8E2D6] text-gray-800"
             }`}
           >
             <div className="flex items-center justify-between">
               <h3
                 className={`font-semibold text-base flex items-center gap-2 ${
-                  darkMode ? "text-gray-100" : "text-gray-800"
+                  darkMode ? "text-gray-100" : "text-gray-900"
                 }`}
               >
                 <FiLock
-                  className={
-                    darkMode ? "text-[#FF8624]" : "text-[#FF8624]"
-                  }
+                  className="text-[#FF8624]"
                 />{" "}
                 Change Password
               </h3>
               <button
                 onClick={() => setShowPasswordModal(false)}
-                className={`p-1 rounded-full transition cursor-pointer ${
+                className={`p-1.5 rounded-full transition cursor-pointer ${
                   darkMode
                     ? "hover:bg-[#2a3942] text-gray-400 hover:text-gray-200"
                     : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"
@@ -553,7 +555,7 @@ export default function Profile({
 
             {passwordError && (
               <div
-                className={`p-2.5 text-xs rounded-lg border ${
+                className={`p-2.5 text-xs rounded-xl border ${
                   darkMode
                     ? "text-red-400 bg-red-950/40 border-red-900/40"
                     : "text-red-600 bg-red-50 border-red-200"
@@ -564,7 +566,7 @@ export default function Profile({
             )}
             {passwordSuccess && (
               <div
-                className={`p-2.5 text-xs rounded-lg border ${
+                className={`p-2.5 text-xs rounded-xl border ${
                   darkMode
                     ? "text-[#FF8624] bg-[#FF8624]/10 border-[#FF8624]/20"
                     : "text-[#FF8624] bg-[#fff4e6] border-[#FF8624]/30"
@@ -577,8 +579,8 @@ export default function Profile({
             <form onSubmit={handlePasswordSubmit} className="space-y-3">
               <div>
                 <label
-                  className={`text-xs font-medium block mb-1 ${
-                    darkMode ? "text-gray-300" : "text-gray-600"
+                  className={`text-xs font-semibold block mb-1.5 ${
+                    darkMode ? "text-gray-300" : "text-gray-700"
                   }`}
                 >
                   Current Password
@@ -588,10 +590,10 @@ export default function Profile({
                   required
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#FF8624]/30 focus:border-[#FF8624] ${
+                  className={`w-full px-3.5 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#FF8624]/30 focus:border-[#FF8624] ${
                     darkMode
                       ? "border-[#2a3942] bg-[#111b21] text-white"
-                      : "border-gray-200 bg-white text-gray-800"
+                      : "border-[#E8E2D6] bg-white text-gray-900"
                   }`}
                   placeholder="Enter current password"
                 />
@@ -599,8 +601,8 @@ export default function Profile({
 
               <div>
                 <label
-                  className={`text-xs font-medium block mb-1 ${
-                    darkMode ? "text-gray-300" : "text-gray-600"
+                  className={`text-xs font-semibold block mb-1.5 ${
+                    darkMode ? "text-gray-300" : "text-gray-700"
                   }`}
                 >
                   New Password
@@ -610,10 +612,10 @@ export default function Profile({
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#FF8624]/30 focus:border-[#FF8624] ${
+                  className={`w-full px-3.5 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#FF8624]/30 focus:border-[#FF8624] ${
                     darkMode
                       ? "border-[#2a3942] bg-[#111b21] text-white"
-                      : "border-gray-200 bg-white text-gray-800"
+                      : "border-[#E8E2D6] bg-white text-gray-900"
                   }`}
                   placeholder="At least 6 characters"
                 />
@@ -621,8 +623,8 @@ export default function Profile({
 
               <div>
                 <label
-                  className={`text-xs font-medium block mb-1 ${
-                    darkMode ? "text-gray-300" : "text-gray-600"
+                  className={`text-xs font-semibold block mb-1.5 ${
+                    darkMode ? "text-gray-300" : "text-gray-700"
                   }`}
                 >
                   Re-type New Password
@@ -632,10 +634,10 @@ export default function Profile({
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#FF8624]/30 focus:border-[#FF8624] ${
+                  className={`w-full px-3.5 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-1 focus:ring-[#FF8624]/30 focus:border-[#FF8624] ${
                     darkMode
                       ? "border-[#2a3942] bg-[#111b21] text-white"
-                      : "border-gray-200 bg-white text-gray-800"
+                      : "border-[#E8E2D6] bg-white text-gray-900"
                   }`}
                   placeholder="Confirm new password"
                 />
@@ -645,17 +647,17 @@ export default function Profile({
                 <button
                   type="button"
                   onClick={() => setShowPasswordModal(false)}
-                  className={`px-4 py-2 text-xs font-medium rounded-lg transition cursor-pointer ${
+                  className={`px-4 py-2.5 text-xs font-semibold rounded-xl transition cursor-pointer border ${
                     darkMode
-                      ? "text-gray-300 hover:bg-[#2a3942]"
-                      : "text-gray-600 hover:bg-gray-100"
+                      ? "border-[#2a3942] text-gray-300 hover:bg-[#111b21]"
+                      : "border-gray-200 text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-medium bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white hover:bg-[#e8873a] text-white rounded-lg transition shadow-xs cursor-pointer"
+                  className="px-4 py-2.5 text-xs font-semibold bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white hover:bg-[#e8873a] rounded-xl transition shadow-xs cursor-pointer"
                 >
                   Update
                 </button>
@@ -667,12 +669,12 @@ export default function Profile({
 
       {/* LOGOUT CONFIRMATION MODAL */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-fadeIn">
           <div
             className={`rounded-2xl shadow-2xl border w-full max-w-sm p-6 space-y-4 transition-colors ${
               darkMode
                 ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
-                : "bg-[#F8F4E8] border-[#E8E0CE] text-gray-800 shadow-2xl"
+                : "bg-[#FAF8F5] border-[#E8E2D6] text-gray-800 shadow-2xl"
             }`}
           >
             <div className="flex items-center gap-3">
@@ -706,17 +708,17 @@ export default function Profile({
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
-                className={`px-4 py-2 text-xs font-medium rounded-lg transition cursor-pointer ${
+                className={`px-4 py-2.5 text-xs font-semibold rounded-xl transition cursor-pointer border ${
                   darkMode
-                    ? "text-gray-300 hover:bg-[#2a3942]"
-                    : "text-gray-600 hover:bg-gray-100"
+                    ? "border-[#2a3942] text-gray-300 hover:bg-[#111b21]"
+                    : "border-gray-200 text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmLogout}
-                className="px-4 py-2 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition shadow-xs cursor-pointer"
+                className="px-4 py-2.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-xl transition shadow-xs cursor-pointer"
               >
                 Log Out
               </button>

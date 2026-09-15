@@ -61,10 +61,10 @@ html.dark {
 
 @keyframes pulseHighlight {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 0 rgba(255, 134, 36, 0);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 0 4px rgba(255, 134, 36, 0.45);
     transform: scale(1.02);
   }
 }
@@ -87,4 +87,83 @@ html.dark {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.25);
+}
+
+/* Landing page anchor navigation should clear the sticky navbar */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 88px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-float-slow,
+  .animate-float-slower {
+    animation: none;
+  }
+}
+
+/* Slow drifting orange washes behind the landing hero */
+@keyframes floatSlow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -22px, 0) scale(1.05);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 16s ease-in-out infinite;
+}
+
+.animate-float-slower {
+  animation: floatSlow 26s ease-in-out infinite;
+}
+
+/* Faint connection-wave texture used behind the landing + auth pages */
+.connecto-canvas {
+  background-color: #f7f3ec;
+  background-image:
+    radial-gradient(60% 50% at 8% 0%, rgba(255, 122, 26, 0.1), transparent 70%),
+    radial-gradient(50% 45% at 100% 100%, rgba(255, 122, 26, 0.12), transparent 70%);
+}
+
+/*
+ * Landing page canvas: ONE continuous warm wash for the whole page.
+ * Every section is transparent on top of this, so no section boundary can
+ * ever produce a visible separator line. The soft orange blooms are radial
+ * gradients (smooth falloff) rather than positioned elements, so they fade
+ * out gradually instead of starting abruptly at a section edge.
+ */
+.landing-canvas {
+  background-color: #fffdfb;
+  background-image:
+    radial-gradient(1000px 560px at 78% 260px, rgba(255, 122, 26, 0.1), transparent 72%),
+    radial-gradient(900px 520px at 8% 150px, rgba(255, 122, 26, 0.09), transparent 72%),
+    radial-gradient(1100px 540px at 50% 1150px, rgba(255, 122, 26, 0.09), transparent 72%),
+    radial-gradient(900px 500px at 14% 1950px, rgba(255, 122, 26, 0.07), transparent 72%),
+    radial-gradient(1000px 520px at 88% 2500px, rgba(255, 122, 26, 0.06), transparent 72%),
+    radial-gradient(1200px 600px at 50% 3400px, rgba(255, 122, 26, 0.07), transparent 75%),
+    linear-gradient(
+      180deg,
+      #f7f3ec 0%,
+      #faf5ee 6%,
+      #fdf8f3 12%,
+      #fffdfb 20%,
+      #fffdfb 44%,
+      #fdf9f3 54%,
+      #fbf5ee 66%,
+      #f8f4ed 76%,
+      #f7f3ec 84%,
+      #faf6f0 92%,
+      #fffdfb 100%
+    );
+  background-repeat: no-repeat;
 }
