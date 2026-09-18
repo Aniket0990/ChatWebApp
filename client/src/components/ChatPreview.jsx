@@ -1,7 +1,7 @@
 /**
  * Stylised Connecto app window used on the landing page — matches the
  * "Connections → conversation" preview from the design reference.
- * Built from markup (no image assets) so it always follows the palette.
+ * Built from markup and authentic portrait avatars to follow the palette.
  *
  * variant: "desktop" (full app window) | "phone" (device frame)
  */
@@ -18,46 +18,92 @@ import {
   FiSend,
   FiCheck,
   FiArrowLeft,
+  FiFileText,
 } from "react-icons/fi";
 
-const RAIL = [
-  { icon: <FiUsers className="text-[13px]" />, label: "Connections", active: true },
-  { icon: <FiUserPlus className="text-[13px]" />, label: "Send Request" },
-  { icon: <FiInbox className="text-[13px]" />, label: "Received" },
+const TABS = [
+  { icon: <FiUsers className="text-[14px]" />, label: "Connections", active: true },
+  { icon: <FiUserPlus className="text-[14px]" />, label: "Send Request" },
+  { icon: <FiInbox className="text-[14px]" />, label: "Received" },
 ];
 
 const CONNECTIONS = [
-  { name: "robot", meta: "robot@gmail.com", color: "#FF7A1A", online: true },
-  { name: "user1", meta: "user1@gmail.com", color: "#FF7A1A", online: true, active: true },
-  { name: "Sophia", meta: "sophia@gmail.com", color: "#D9534F", online: false },
-  { name: "Rohit", meta: "rohit@gmail.com", color: "#5B8AD6", online: true },
-  { name: "Team Project", meta: "8 members", color: "#39B982", group: true },
+  {
+    name: "robot",
+    meta: "robot@gmail.com",
+    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80",
+    color: "#FF7A1A",
+    online: true,
+  },
+  {
+    name: "user1",
+    meta: "user1@gmail.com",
+    initial: "U",
+    color: "#FF7A1A",
+    online: true,
+    active: true,
+  },
+  {
+    name: "Sophia",
+    meta: "sophia@gmail.com",
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80",
+    color: "#D9534F",
+    online: false,
+  },
+  {
+    name: "Rohit",
+    meta: "rohit@gmail.com",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
+    color: "#5B8AD6",
+    online: true,
+  },
+  {
+    name: "Team Project",
+    meta: "8 members",
+    color: "#39B982",
+    group: true,
+  },
 ];
 
-function Avatar({ name, color, size = 24, online = false, group = false }) {
+function PreviewAvatar({ name, avatar, initial, color = "#FF7A1A", size = 28, online = false, group = false }) {
   return (
-    <span className="relative inline-flex shrink-0">
+    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
+      {avatar ? (
+        <img
+          src={avatar}
+          alt={name}
+          className="rounded-full object-cover shrink-0"
+          style={{ width: size, height: size, minWidth: size, minHeight: size }}
+          onError={(e) => {
+            e.target.style.display = "none";
+            if (e.target.nextSibling) e.target.nextSibling.style.display = "grid";
+          }}
+        />
+      ) : null}
       <span
-        className="grid place-items-center rounded-full font-semibold text-white"
+        className="grid place-items-center rounded-full font-bold text-white shadow-xs shrink-0"
         style={{
           width: size,
           height: size,
+          minWidth: size,
+          minHeight: size,
           background: color,
-          fontSize: Math.max(8, size * 0.42),
+          fontSize: Math.max(9, size * 0.44),
+          display: avatar ? "none" : "grid",
         }}
       >
-        {group ? <FiUsers className="text-[11px]" /> : name.charAt(0).toUpperCase()}
+        {group ? <FiUsers className="text-[13px]" /> : initial || name.charAt(0).toUpperCase()}
       </span>
       {online && (
         <span
-          className="absolute -bottom-0.5 -right-0.5 rounded-full border-[1.5px] border-white"
-          style={{ width: size * 0.36, height: size * 0.36, background: "#39B982" }}
+          className="absolute -bottom-0.5 -right-0.5 rounded-full border-[1.5px] border-white bg-[#39B982] shrink-0"
+          style={{ width: Math.max(8, size * 0.32), height: Math.max(8, size * 0.32) }}
         />
       )}
       {!online && !group && (
         <span
-          className="absolute -bottom-0.5 -right-0.5 rounded-full border-[1.5px] border-white bg-muted/60"
-          style={{ width: size * 0.36, height: size * 0.36 }}
+          className="absolute -bottom-0.5 -right-0.5 rounded-full border-[1.5px] border-white bg-[#A0A0A0] shrink-0"
+          style={{ width: Math.max(8, size * 0.32), height: Math.max(8, size * 0.32) }}
         />
       )}
     </span>
@@ -68,17 +114,17 @@ function Bubble({ children, time, mine = false }) {
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
       <span
-        className={`max-w-[85%] whitespace-pre-line rounded-[14px] px-2.5 py-1.5 text-[10px] leading-snug ${
+        className={`max-w-[85%] whitespace-pre-line rounded-[14px] px-3.5 py-2 text-[11px] leading-snug ${
           mine
-            ? "rounded-br-[4px] bg-brand-100 text-ink"
-            : "rounded-bl-[4px] border border-line bg-white text-ink"
+            ? "rounded-br-[3px] bg-[#FFEFE5] text-[#1F1F1F]"
+            : "rounded-bl-[3px] border border-[#EAE2D5] bg-white text-[#1F1F1F] shadow-[0_2px_8px_-4px_rgba(0,0,0,0.04)]"
         }`}
       >
         {children}
       </span>
-      <span className="mt-0.5 flex items-center gap-1 text-[8px] text-muted">
+      <span className="mt-1 flex items-center gap-1 text-[9px] text-[#888888]">
         {time}
-        {mine && <span className="text-brand">✓✓</span>}
+        {mine && <FiCheck className="text-[9.5px] text-[#888888]" />}
       </span>
     </div>
   );
@@ -86,92 +132,106 @@ function Bubble({ children, time, mine = false }) {
 
 function DesktopPreview() {
   return (
-    <div className="overflow-hidden rounded-[20px] border border-line bg-white shadow-soft">
-      {/* App header */}
-      <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-        <img src="/logo.svg" alt="" className="h-4 w-4" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink">
-          Connecto
-        </span>
-        <span className="ml-auto hidden gap-3 text-[12px] text-muted sm:flex">
-          <FiSearch />
-          <FiUsers />
-        </span>
-      </div>
-
-      <div className="flex h-[352px] sm:h-[400px]">
-        {/* Rail */}
-        <div className="hidden w-[112px] shrink-0 flex-col gap-1 border-r border-line p-2 sm:flex">
-          {RAIL.map(({ icon, label, active }) => (
-            <span
-              key={label}
-              className={`flex items-center gap-2 rounded-[10px] px-2 py-2 text-[10px] font-medium ${
-                active ? "bg-brand-100 text-brand" : "text-muted"
-              }`}
-            >
-              {icon}
-              <span className="truncate">{label}</span>
+    <div className="overflow-hidden rounded-[24px] border border-[#EAE2D5] bg-white shadow-[0_22px_55px_-20px_rgba(36,36,36,0.12)]">
+      <div className="flex h-[400px] sm:h-[430px]">
+        {/* Unified Left Sidebar */}
+        <div className="flex w-[205px] sm:w-[220px] shrink-0 flex-col border-r border-[#EAE2D5] bg-white p-3.5">
+          {/* Brand header */}
+          <div className="flex items-center gap-2 pb-3">
+            <img src="/logo.svg" alt="" className="h-5 w-5 shrink-0" style={{ width: 20, height: 20 }} />
+            <span className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#1F1F1F]">
+              Connecto
             </span>
-          ))}
-        </div>
-
-        {/* Connections list */}
-        <div className="hidden w-[168px] shrink-0 border-r border-line p-2 md:block">
-          <div className="mb-2 flex items-center gap-1.5 rounded-[8px] bg-[#F6F3EE] px-2 py-1.5 text-[9px] text-muted">
-            <FiSearch className="text-[11px]" />
-            Search connections...
           </div>
-          <div className="space-y-0.5">
+
+          {/* Navigation tabs */}
+          <div className="space-y-1 pb-3">
+            {TABS.map(({ icon, label, active }) => (
+              <div
+                key={label}
+                className={`flex items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition ${
+                  active
+                    ? "bg-[#FFEFE2] font-semibold text-[#FF7A1A]"
+                    : "text-[#555555] hover:bg-[#FAF6F0]"
+                }`}
+              >
+                <span className={active ? "text-[#FF7A1A]" : "text-[#777777]"}>
+                  {icon}
+                </span>
+                <span className="truncate">{label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Search bar */}
+          <div className="mb-2.5 flex items-center gap-2 rounded-[8px] bg-[#FAF6F0] px-2.5 py-1.5 text-[10px] text-[#888888]">
+            <FiSearch className="text-[11px] text-[#888888] shrink-0" />
+            <span className="truncate">Search connections...</span>
+          </div>
+
+          {/* Connections list */}
+          <div className="flex-1 space-y-1 overflow-hidden">
             {CONNECTIONS.map((c) => (
               <div
                 key={c.name}
-                className={`flex items-center gap-2 rounded-[10px] px-1.5 py-1.5 ${
-                  c.active ? "bg-brand-50" : ""
+                className={`flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition ${
+                  c.active ? "bg-[#FFF4EB]" : "hover:bg-[#FAF6F0]"
                 }`}
               >
-                <Avatar
+                <PreviewAvatar
                   name={c.name}
+                  avatar={c.avatar}
+                  initial={c.initial}
                   color={c.color}
                   online={c.online}
                   group={c.group}
-                  size={24}
+                  size={26}
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[10px] font-semibold text-ink">
+                  <span className="block truncate text-[10.5px] font-semibold text-[#1F1F1F]">
                     {c.name}
                   </span>
-                  <span className="block truncate text-[8.5px] text-muted">
+                  <span className="block truncate text-[9px] text-[#888888]">
                     {c.meta}
                   </span>
                 </span>
+                {c.online && !c.group && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#39B982] shrink-0" />
+                )}
+                {!c.online && !c.group && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#B0B0B0] shrink-0" />
+                )}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Conversation */}
-        <div className="flex min-w-0 flex-1 flex-col bg-[#FDFBF7]">
-          <div className="flex items-center gap-2 border-b border-line bg-white px-3 py-2.5">
-            <Avatar name="user1" color="#FF7A1A" size={26} online />
+        {/* Right Conversation Panel */}
+        <div className="flex min-w-0 flex-1 flex-col bg-[#FAF7F2]">
+          {/* Header */}
+          <div className="flex items-center gap-2.5 border-b border-[#EAE2D5] bg-white px-4 py-3">
+            <PreviewAvatar name="user1" initial="U" color="#FF7A1A" size={28} online />
             <span className="min-w-0">
-              <span className="block truncate text-[11px] font-semibold text-ink">
+              <span className="block truncate text-[11.5px] font-bold text-[#1F1F1F]">
                 user1
               </span>
-              <span className="block text-[9px] font-medium text-online">
+              <span className="flex items-center gap-1 text-[9px] font-medium text-[#39B982]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#39B982]" />
                 Online
               </span>
             </span>
-            <span className="ml-auto flex items-center gap-3 text-[13px] text-muted">
-              <FiSearch />
-              <FiVideo />
-              <FiPhone />
-              <FiMoreVertical />
+            <span className="ml-auto flex items-center gap-3.5 text-[13px] text-[#777777]">
+              <FiSearch className="cursor-pointer hover:text-ink" />
+              <FiPhone className="cursor-pointer hover:text-ink" />
+              <FiVideo className="cursor-pointer hover:text-ink" />
+              <FiMoreVertical className="cursor-pointer hover:text-ink" />
             </span>
           </div>
 
-          <div className="flex-1 space-y-2.5 overflow-hidden p-3">
+          {/* Messages */}
+          <div className="flex-1 space-y-3 overflow-hidden p-4">
             <Bubble time="10:18 pm">{"Hi\nHow are you?"}</Bubble>
-            <Bubble mine time="10:18 pm">
+            <Bubble mine time="10:19 pm">
               {"Hey!\nI'm good. How about you?"}
             </Bubble>
             <Bubble time="10:20 pm">{"Great!\nLet's catch up tomorrow."}</Bubble>
@@ -180,13 +240,14 @@ function DesktopPreview() {
             </Bubble>
           </div>
 
-          <div className="flex items-center gap-2.5 border-t border-line bg-white px-3 py-2.5">
-            <FiPaperclip className="text-[13px] text-muted" />
-            <FiSmile className="text-[13px] text-muted" />
-            <span className="min-w-0 flex-1 truncate rounded-full border border-line bg-[#FDFBF7] px-3 py-1.5 text-[10px] text-muted">
+          {/* Bottom input */}
+          <div className="flex items-center gap-2.5 border-t border-[#EAE2D5] bg-white px-4 py-3">
+            <FiPaperclip className="cursor-pointer text-[14px] text-[#777777] hover:text-[#FF7A1A]" />
+            <FiSmile className="cursor-pointer text-[14px] text-[#777777] hover:text-[#FF7A1A]" />
+            <span className="min-w-0 flex-1 truncate rounded-full border border-[#EAE2D5] bg-[#FAF6F0] px-4 py-1.5 text-[10.5px] text-[#888888]">
               Type a message...
             </span>
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand text-[11px] text-white">
+            <span className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full bg-[#FF7A1A] text-[11px] text-white shadow-xs transition hover:bg-[#E9680D]">
               <FiSend />
             </span>
           </div>
@@ -198,79 +259,91 @@ function DesktopPreview() {
 
 function PhonePreview() {
   return (
-    <div className="w-[198px] rounded-[30px] border-[6px] border-[#2A2A2A] bg-[#2A2A2A] shadow-soft">
-      <div className="overflow-hidden rounded-[24px] bg-[#FDFBF7]">
-        <div className="flex justify-center bg-[#2A2A2A] pt-1.5">
-          <span className="h-1 w-10 rounded-full bg-white/30" />
+    <div className="w-[208px] rounded-[32px] border-[6px] border-[#222222] bg-[#222222] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)]">
+      <div className="overflow-hidden rounded-[26px] bg-[#FAF7F2]">
+        {/* Notch / Speaker */}
+        <div className="flex justify-center bg-[#222222] pt-1.5 pb-1">
+          <span className="h-1 w-11 rounded-full bg-white/30" />
         </div>
 
         {/* Group conversation header */}
-        <div className="flex items-center gap-2 border-b border-line bg-white px-2.5 py-2.5">
-          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand text-[10px] text-white">
+        <div className="flex items-center gap-2 border-b border-[#EAE2D5] bg-white px-2.5 py-2">
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#FF7A1A] text-[9px] text-white">
             <FiArrowLeft />
           </span>
-          <Avatar name="Project Team" color="#8E6CE4" size={24} group />
+          <PreviewAvatar name="Project Team" color="#39B982" size={24} group />
           <span className="min-w-0">
-            <span className="block truncate text-[10.5px] font-semibold text-ink">
+            <span className="block truncate text-[10.5px] font-bold text-[#1F1F1F]">
               Project Team
             </span>
-            <span className="block text-[8.5px] text-muted">8 members</span>
+            <span className="block text-[8px] text-[#888888]">12 members</span>
           </span>
+          <span className="ml-auto h-2 w-2 rounded-full bg-[#39B982]" />
         </div>
 
         <div className="space-y-2 p-2.5">
           <div className="flex items-start gap-1.5">
-            <Avatar name="Naman" color="#FF7A1A" size={18} />
+            <PreviewAvatar
+              name="Rohit"
+              avatar="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80"
+              color="#5B8AD6"
+              size={18}
+            />
             <div className="min-w-0">
-              <span className="block text-[8px] font-semibold text-ink">
-                Naman
+              <span className="block text-[8px] font-bold text-[#1F1F1F]">
+                Rohit
               </span>
-              <p className="mt-0.5 rounded-[12px] rounded-tl-[4px] border border-line bg-white px-2 py-1.5 text-[9px] leading-snug text-ink">
-                Here&apos;s the latest updates
+              <p className="mt-0.5 rounded-[12px] rounded-tl-[3px] border border-[#EAE2D5] bg-white px-2 py-1 text-[8.5px] leading-snug text-[#1F1F1F]">
+                Here&apos;s the latest update
               </p>
-              <div className="mt-1 flex items-center gap-1.5 rounded-[10px] border border-line bg-white px-2 py-1.5">
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-[6px] bg-brand-50 text-brand">
-                  <FiPaperclip className="text-[10px]" />
+              <div className="mt-1 flex items-center gap-1.5 rounded-[9px] border border-[#EAE2D5] bg-white px-2 py-1">
+                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-[5px] bg-[#FDECE0] text-[#FF7A1A]">
+                  <FiFileText className="text-[9px]" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-[8.5px] font-semibold text-ink">
+                  <span className="block truncate text-[8px] font-bold text-[#1F1F1F]">
                     Project_Plan.pdf
                   </span>
-                  <span className="block text-[7.5px] text-muted">
+                  <span className="block text-[7px] text-[#888888]">
                     2.4 MB
                   </span>
                 </span>
-                <FiCheck className="ml-auto text-[9px] text-brand" />
+                <FiCheck className="ml-auto text-[8.5px] text-[#FF7A1A]" />
               </div>
             </div>
           </div>
 
           <div className="flex flex-col items-end">
-            <span className="text-[8px] font-semibold text-ink">Riya</span>
-            <p className="mt-0.5 rounded-[12px] rounded-tr-[4px] bg-brand-100 px-2 py-1.5 text-[9px] text-ink">
+            <span className="text-[8px] font-bold text-[#1F1F1F]">Sophia</span>
+            <p className="mt-0.5 rounded-[12px] rounded-tr-[3px] bg-[#FFEFE5] px-2 py-1 text-[8.5px] text-[#1F1F1F]">
               Looks good! 😊
             </p>
           </div>
 
           <div className="flex items-start gap-1.5">
-            <Avatar name="Ravi" color="#39B982" size={18} />
+            <PreviewAvatar
+              name="You"
+              initial="Y"
+              color="#FF7A1A"
+              size={18}
+            />
             <div className="min-w-0">
-              <span className="block text-[8px] font-semibold text-ink">
-                Ravi
+              <span className="block text-[8px] font-bold text-[#1F1F1F]">
+                You
               </span>
-              <p className="mt-0.5 rounded-[12px] rounded-tl-[4px] border border-line bg-white px-2 py-1.5 text-[9px] text-ink">
+              <p className="mt-0.5 rounded-[12px] rounded-tl-[3px] border border-[#EAE2D5] bg-white px-2 py-1 text-[8.5px] text-[#1F1F1F]">
                 Great work team! 🎉
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 border-t border-line bg-white px-3 py-2.5">
-          <FiPaperclip className="text-[12px] text-muted" />
-          <span className="min-w-0 flex-1 truncate rounded-full border border-line bg-[#FDFBF7] px-2.5 py-1.5 text-[9px] text-muted">
+        <div className="flex items-center gap-1.5 border-t border-[#EAE2D5] bg-white px-2.5 py-2">
+          <FiPaperclip className="text-[11px] text-[#777777]" />
+          <span className="min-w-0 flex-1 truncate rounded-full border border-[#EAE2D5] bg-[#FAF6F0] px-2 py-1 text-[8.5px] text-[#888888]">
             Type a message...
           </span>
-          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand text-[10px] text-white">
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#FF7A1A] text-[9px] text-white">
             <FiSend />
           </span>
         </div>

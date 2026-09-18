@@ -75,14 +75,6 @@ export default function Register() {
 
   return (
     <AuthLayout
-      topRight={
-        <p>
-          Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-brand hover:underline">
-            Login
-          </Link>
-        </p>
-      }
     >
       <SEO
         title="Register — Connecto | Fast & Secure Real-Time Web Chat App"

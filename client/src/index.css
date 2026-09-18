@@ -129,41 +129,32 @@ html.dark {
 
 /* Faint connection-wave texture used behind the landing + auth pages */
 .connecto-canvas {
-  background-color: #f7f3ec;
+  background-color: #faf5ee;
   background-image:
-    radial-gradient(60% 50% at 8% 0%, rgba(255, 122, 26, 0.1), transparent 70%),
-    radial-gradient(50% 45% at 100% 100%, rgba(255, 122, 26, 0.12), transparent 70%);
+    radial-gradient(60% 50% at 8% 0%, rgba(255, 122, 26, 0.08), transparent 70%),
+    radial-gradient(50% 45% at 100% 100%, rgba(255, 122, 26, 0.1), transparent 70%);
 }
 
 /*
- * Landing page canvas: ONE continuous warm wash for the whole page.
- * Every section is transparent on top of this, so no section boundary can
- * ever produce a visible separator line. The soft orange blooms are radial
- * gradients (smooth falloff) rather than positioned elements, so they fade
- * out gradually instead of starting abruptly at a section edge.
+ * Landing page canvas: Warm cream backdrop with smooth peach / orange glows
  */
 .landing-canvas {
-  background-color: #fffdfb;
+  background-color: #faf5ee;
   background-image:
-    radial-gradient(1000px 560px at 78% 260px, rgba(255, 122, 26, 0.1), transparent 72%),
-    radial-gradient(900px 520px at 8% 150px, rgba(255, 122, 26, 0.09), transparent 72%),
-    radial-gradient(1100px 540px at 50% 1150px, rgba(255, 122, 26, 0.09), transparent 72%),
-    radial-gradient(900px 500px at 14% 1950px, rgba(255, 122, 26, 0.07), transparent 72%),
-    radial-gradient(1000px 520px at 88% 2500px, rgba(255, 122, 26, 0.06), transparent 72%),
-    radial-gradient(1200px 600px at 50% 3400px, rgba(255, 122, 26, 0.07), transparent 75%),
+    radial-gradient(1000px 650px at 85% 220px, rgba(255, 134, 36, 0.14), transparent 70%),
+    radial-gradient(850px 520px at 10% 280px, rgba(255, 122, 26, 0.07), transparent 70%),
+    radial-gradient(900px 500px at 50% 1200px, rgba(255, 122, 26, 0.06), transparent 72%),
+    radial-gradient(950px 520px at 15% 2000px, rgba(255, 122, 26, 0.07), transparent 72%),
+    radial-gradient(1100px 580px at 85% 2700px, rgba(255, 122, 26, 0.09), transparent 72%),
+    radial-gradient(1200px 600px at 50% 3500px, rgba(255, 122, 26, 0.07), transparent 75%),
     linear-gradient(
       180deg,
-      #f7f3ec 0%,
-      #faf5ee 6%,
-      #fdf8f3 12%,
-      #fffdfb 20%,
-      #fffdfb 44%,
-      #fdf9f3 54%,
-      #fbf5ee 66%,
-      #f8f4ed 76%,
-      #f7f3ec 84%,
-      #faf6f0 92%,
-      #fffdfb 100%
+      #faf5ee 0%,
+      #fdf8f2 15%,
+      #faf5ee 35%,
+      #fcf7f1 60%,
+      #f9f3eb 85%,
+      #faf5ee 100%
     );
   background-repeat: no-repeat;
 }

@@ -67,32 +67,34 @@ function BrandPanel() {
   return (
     <section className="hidden lg:block">
       <ConnectoLogo size={44} wordClassName="text-[28px]" />
-      <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-brand">
-        Connect. Chat. Stay Connected.
-      </p>
+      <div className="mt-4">
+        <span className="inline-flex items-center rounded-full bg-[#FDECE0] px-4 py-1 text-[11.5px] font-bold uppercase tracking-[0.2em] text-[#C86011]">
+          Connect. Chat. Stay Connected.
+        </span>
+      </div>
 
-      <h1 className="mt-8 text-[44px] font-extrabold leading-[1.08] tracking-tight text-ink xl:text-[52px]">
+      <h1 className="mt-7 text-[44px] font-extrabold leading-[1.08] tracking-tight text-ink xl:text-[52px]">
         Meaningful <span className="text-brand">Conversations</span>
         <br />
         Start Here.
       </h1>
 
-      <p className="mt-6 max-w-md text-[17px] leading-relaxed text-muted">
+      <p className="mt-5 max-w-md text-[16.5px] leading-relaxed text-muted">
         Connect with people, chat privately, create groups and stay connected —
         all in one place.
       </p>
 
-      <ul className="mt-9 space-y-5">
+      <ul className="mt-8 space-y-4.5">
         {HIGHLIGHTS.map(({ icon, title, text }) => (
           <li key={title} className="flex items-start gap-4">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-brand-200 bg-brand-100 text-brand">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#FEEFE2] text-brand border border-[#FCDDC6]">
               {icon}
             </span>
             <span>
               <span className="block text-[15px] font-semibold text-ink">
                 {title}
               </span>
-              <span className="block text-[14px] text-muted">{text}</span>
+              <span className="block text-[13.5px] text-muted">{text}</span>
             </span>
           </li>
         ))}

@@ -68,14 +68,6 @@ export default function Login() {
 
   return (
     <AuthLayout
-      topRight={
-        <p>
-          New to Connecto?{" "}
-          <Link to="/register" className="font-semibold text-brand hover:underline">
-            Sign Up
-          </Link>
-        </p>
-      }
     >
       <SEO
         title="Login — Connecto | Fast & Secure Real-Time Web Chat App"
