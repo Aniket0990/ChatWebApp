@@ -1,5 +1,6 @@
+import { Link } from "react-router-dom";
 import ConnectoLogo from "./ConnectoLogo";
-import { FiUsers, FiMessageCircle, FiUserPlus } from "react-icons/fi";
+import { FiUsers, FiMessageCircle, FiUserPlus, FiHome } from "react-icons/fi";
 
 const HIGHLIGHTS = [
   {
@@ -66,9 +67,11 @@ function BackgroundCurves() {
 function BrandPanel() {
   return (
     <section className="hidden lg:block">
-      <ConnectoLogo size={44} wordClassName="text-[28px]" />
+      <Link to="/" className="inline-block" aria-label="Connecto home">
+        <ConnectoLogo size={44} wordClassName="text-[28px]" />
+      </Link>
       <div className="mt-4">
-        <span className="inline-flex items-center rounded-full bg-[#FDECE0] px-4 py-1 text-[11.5px] font-bold uppercase tracking-[0.2em] text-[#C86011]">
+        <span className="inline-flex items-center rounded-full bg-[#F7D3B4] px-4 py-1 text-[11.5px] font-bold uppercase tracking-[0.2em] text-[#B85507]">
           Connect. Chat. Stay Connected.
         </span>
       </div>
@@ -84,7 +87,7 @@ function BrandPanel() {
         all in one place.
       </p>
 
-      <ul className="mt-8 space-y-4.5">
+      <ul className="mt-8 space-y-[18px]">
         {HIGHLIGHTS.map(({ icon, title, text }) => (
           <li key={title} className="flex items-start gap-4">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#FEEFE2] text-brand border border-[#FCDDC6]">
@@ -141,11 +144,20 @@ export default function AuthLayout({ topRight, children }) {
     <main className="connecto-canvas relative min-h-screen overflow-hidden font-sans text-ink">
       <BackgroundCurves />
 
+      <Link
+        to="/"
+        aria-label="Back to home"
+        className="absolute left-5 top-5 z-20 inline-flex items-center gap-2 rounded-full border border-[#DFD6C8] bg-brand px-3.5 py-2 text-[13px] font-medium text-white backdrop-blur transition hover:border-brand/50 sm:left-8 sm:top-7"
+      >
+        <FiHome className="text-[15px]" />
+        <span className="inline">Home</span>
+      </Link>
+
       <div className="absolute right-5 top-5 z-20 text-[14px] text-muted sm:right-8 sm:top-7">
         {topRight}
       </div>
 
-      <div className="relative z-10 mx-auto grid min-h-screen max-w-[1240px] items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:px-10 lg:py-12">
+      <div className="relative z-10 mx-auto grid min-h-screen max-w-[1240px] items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:px-10 lg:pt-20 lg:pb-12">
         <BrandPanel />
 
         <div className="flex justify-center lg:justify-end">{children}</div>

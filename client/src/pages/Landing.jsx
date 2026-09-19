@@ -11,19 +11,19 @@ import {
   FiX,
   FiMessageCircle,
   FiUsers,
-  FiTwitter,
   FiInstagram,
   FiLinkedin,
-  FiYoutube,
+  FiGithub,
+  FiMail,
 } from "react-icons/fi";
 
 /* ----------------------------- shared bits ----------------------------- */
 
 /* Hero buttons matching target design: rounded-[14px] */
 const BTN_PRIMARY =
-  "inline-flex h-[48px] items-center justify-center gap-2 rounded-[14px] bg-brand px-8 text-[15px] font-semibold text-white shadow-glow transition hover:bg-brand-600 active:scale-[0.98]";
+  "inline-flex h-[44px] items-center justify-center gap-2 rounded-[14px] bg-brand px-8 text-[15px] font-semibold text-white shadow-glow transition hover:bg-brand-600 active:scale-[0.98]";
 const BTN_GHOST =
-  "inline-flex h-[48px] items-center justify-center gap-2 rounded-[14px] border border-[#DDCFC0] bg-white px-8 text-[15px] font-semibold text-ink transition hover:border-brand/50 hover:text-brand active:scale-[0.98]";
+  "inline-flex h-[44px] items-center justify-center gap-2 rounded-[14px] border border-[#DDCFC0] bg-white px-8 text-[15px] font-semibold text-ink transition hover:border-brand/50 hover:text-brand active:scale-[0.98]";
 
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
@@ -80,7 +80,7 @@ const BUILT_ITEMS = [
 function Eyebrow({ children, className = "" }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full bg-[#FEEFE2] px-5 py-1.5 text-[12.5px] font-semibold text-[#B85507] ${className}`}
+      className={`inline-flex items-center rounded-full bg-[#F7D3B4] px-5 py-1.5 text-[12.5px] font-semibold text-[#B85507] ${className}`}
     >
       {children}
     </span>
@@ -117,6 +117,12 @@ function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const startHref = user ? "/chat" : "/register";
 
+  // Logo acts as a "home" link: close the mobile menu and jump back to the top of the page.
+  const goHome = () => {
+    setOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
@@ -127,11 +133,11 @@ function Navbar() {
   return (
     <header
       className={`sticky top-0 z-50 transition-colors duration-200 ${
-        scrolled ? "bg-cream/95 backdrop-blur shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]" : "bg-transparent"
+        scrolled ? "bg-cream/95 backdrop-blur-[3px] shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]" : "bg-transparent"
       }`}
     >
-      <nav className="mx-auto flex h-[76px] max-w-6xl items-center justify-between px-5 sm:px-8">
-        <Link to="/" aria-label="Connecto home">
+      <nav className="mx-auto flex h-[76px] max-w-7xl items-center justify-between px-5 sm:px-8">
+        <Link to="/" onClick={goHome} aria-label="Connecto home">
           <ConnectoLogo size={30} wordClassName="text-[19px]" />
         </Link>
 
@@ -221,7 +227,7 @@ function Hero() {
     <section className="relative overflow-hidden bg-gradient-to-b from-[#FAF5EE] via-[#FDF2E8] to-[#FCEEE2]/80">
       <HeroBackgroundDecor />
 
-      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-5 pb-12 pt-8 sm:px-8 lg:grid-cols-[0.95fr_1.05fr] lg:pb-16 lg:pt-12">
+      <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 pb-12 pt-8 sm:px-8 lg:grid-cols-[0.95fr_1.05fr] lg:pb-16 lg:pt-12">
         {/* Left column */}
         <div className="min-w-0">
           <Eyebrow>Simple &nbsp;•&nbsp; Secure &nbsp;•&nbsp; Always Connected</Eyebrow>
@@ -391,7 +397,7 @@ function Hero() {
 function Features() {
   return (
     <section id="features" className="relative">
-      <div className="mx-auto max-w-6xl px-5 pt-4 pb-20 sm:px-8 lg:pt-6 lg:pb-24">
+      <div className="mx-auto max-w-7xl px-5 pt-4 pb-20 sm:px-8 lg:pt-6 lg:pb-24">
         <div className="mx-auto max-w-3xl text-center">
           <Eyebrow className="uppercase tracking-[0.2em] text-[11px] font-bold">WHY CONNECTO?</Eyebrow>
           <h2 className="mt-4 text-[32px] font-extrabold tracking-tight text-ink sm:text-[38px]">
@@ -429,13 +435,13 @@ function Features() {
 function HowItWorks() {
   return (
     <section id="how-it-works" className="relative">
-      <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
-        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-b from-[#FDF1E7] via-[#FEEDDE] to-[#FCEEE1] border border-[#F7E4D2] px-8 py-12 sm:px-12 lg:px-16 lg:py-14 shadow-[0_12px_40px_-20px_rgba(255,122,26,0.08)]">
+      <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8">
+        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-b from-[#FDF1E7] via-[#FEEDDE] to-[#FCEEE1] border border-[#F7E4D2] px-8 py-12 sm:px-12 lg:px-16 lg:py-14 shadow-lg hover:shadow-xl">
           {/* Ambient soft warm bloom */}
           <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 h-[260px] w-[520px] rounded-full bg-[#FF7A1A]/[0.08] blur-[80px]" />
 
           <div className="relative text-center">
-            <span className="inline-flex items-center rounded-full bg-[#FCE5D2] px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-[#C86011]">
+            <span className="inline-flex items-center rounded-full bg-[#F7D3B4] px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-[#B85507]">
               HOW IT WORKS
             </span>
             <h2 className="mt-3.5 text-[28px] sm:text-[32px] font-extrabold leading-tight tracking-tight text-[#18181B]">
@@ -490,8 +496,8 @@ function HowItWorks() {
 function BuiltForConnection() {
   return (
     <section id="about" className="relative">
-      <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 py-18 sm:px-8 lg:grid-cols-2 lg:py-24">
-        <div className="order-2 lg:order-1">
+      <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:gap-14 sm:px-8 lg:grid-cols-2 lg:py-24">
+        <div className="order-2 min-w-0 lg:order-1">
           <div className="relative w-full max-w-[500px]">
             <ChatPreview />
             <div className="absolute -bottom-10 -right-3 hidden sm:block lg:-right-6">
@@ -500,7 +506,7 @@ function BuiltForConnection() {
           </div>
         </div>
 
-        <div className="order-1 lg:order-2">
+        <div className="order-1 min-w-0 lg:order-2">
           <Eyebrow className="uppercase tracking-[0.2em] text-[11px] font-bold">BUILT FOR CONNECTION</Eyebrow>
           <h2 className="mt-4 max-w-md text-[32px] font-extrabold leading-tight tracking-tight text-ink sm:text-[38px]">
             From private conversations to group chats.
@@ -558,7 +564,7 @@ const AVATAR_NODES = [
 function ConnectionGraph() {
   return (
     <div className="flex items-center justify-center gap-8">
-      <div className="relative h-[250px] w-[250px] shrink-0 sm:h-[280px] sm:w-[280px]">
+      <div className="relative h-[210px] w-[210px] shrink-0 sm:h-[280px] sm:w-[280px]">
         {/* Radiating orange dashed lines from center */}
         <svg
           className="absolute inset-0 h-full w-full text-brand"
@@ -643,8 +649,8 @@ function CallToAction() {
 
   return (
     <section className="relative">
-      <div className="mx-auto max-w-6xl px-5 py-18 sm:px-8 lg:py-24">
-        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#FDE8D7] via-[#FDE4CF] to-[#FCE0CA] border border-[#F5DCBE] px-7 py-12 sm:px-12 lg:px-16 lg:py-16 shadow-soft">
+      <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:py-24">
+        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#FDE8D7] via-[#FDE4CF] to-[#FCE0CA] border border-[#F5DCBE] px-7 py-12 sm:px-12 lg:px-16 lg:py-16 shadow-lg hover:shadow-xl">
           <div className="pointer-events-none absolute -right-24 -top-24 h-[320px] w-[320px] animate-float-slow rounded-full bg-brand/[0.12] blur-[90px]" />
 
           <div className="relative grid items-center gap-10 lg:grid-cols-[1.05fr_1fr]">
@@ -685,45 +691,47 @@ const FOOTER_COLUMNS = [
       { label: "Contact", href: "#contact" },
     ],
   },
-  {
-    title: "Legal",
-    links: [
-      { label: "Privacy Policy", href: "#" },
-      { label: "Terms & Conditions", href: "#" },
-      { label: "Cookie Policy", href: "#" },
-    ],
-  },
-  {
-    title: "Support",
-    links: [
-      { label: "Help Center", href: "#" },
-      { label: "Contact Us", href: "#contact" },
-      { label: "FAQs", href: "#" },
-    ],
-  },
+  // {
+  //   title: "Legal",
+  //   links: [
+  //     { label: "Privacy Policy", href: "#" },
+  //     { label: "Terms & Conditions", href: "#" },
+  //     { label: "Cookie Policy", href: "#" },
+  //   ],
+  // },
+  // {
+  //   title: "Support",
+  //   links: [
+  //     { label: "Help Center", href: "#" },
+  //     { label: "Contact Us", href: "#contact" },
+  //     { label: "FAQs", href: "#" },
+  //   ],
+  // },
 ];
 
 const SOCIALS = [
-  { icon: <FiLinkedin className="text-[14px]" />, label: "LinkedIn" },
-  { icon: <FiTwitter className="text-[14px]" />, label: "Twitter" },
-  { icon: <FiInstagram className="text-[14px]" />, label: "Instagram" },
-  { icon: <FiYoutube className="text-[14px]" />, label: "YouTube" },
+  { icon: <FiLinkedin className="text-[14px]" />, label: "LinkedIn", href:"https://www.linkedin.com/in/shelkeaniket/" },
+  { icon: <FiGithub className="text-[14px]" />, label: "GitHub", href:"https://github.com/Aniket0990" },
+  { icon: <FiInstagram className="text-[14px]" />, label: "Instagram", href:"https://www.instagram.com/heyanikets/" },
+  { icon: <FiMail className="text-[14px]" />, label: "Email", href:"mailto:aniketshelke554@gmail.com" },
 ];
 
 function Footer() {
   return (
     <footer id="contact" className="relative border-t border-line/60">
-      <div className="mx-auto grid max-w-6xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-10 px-5 py-16 sm:gap-12">
         <div>
           <ConnectoLogo size={28} wordClassName="text-[18px]" />
           <p className="mt-3.5 max-w-[240px] text-[13.5px] leading-relaxed text-muted">
             Connect. Chat. Stay Connected.
           </p>
           <div className="mt-5 flex items-center gap-2.5">
-            {SOCIALS.map(({ icon, label }) => (
+            {SOCIALS.map(({ icon, label,href }) => (
               <a
                 key={label}
-                href="#"
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label={label}
                 className="grid h-8 w-8 place-items-center rounded-full border border-[#DFD6C8] text-[#777777] transition hover:border-brand hover:text-brand hover:bg-white"
               >
@@ -753,8 +761,8 @@ function Footer() {
           </div>
         ))}
 
-        <div className="hidden lg:block">
-          <p className="-rotate-[5deg] font-hand text-[23px] leading-tight text-ink">
+        <div className="w-full sm:w-auto">
+          <p className="-rotate-[5deg] font-hand text-[21px] leading-tight text-ink sm:text-[23px]">
             A
             <br />
             More Connected
@@ -767,13 +775,9 @@ function Footer() {
       </div>
 
       <div className="border-t border-line/60">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 py-5 text-[13px] text-muted sm:flex-row sm:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-5 text-[13px] text-muted sm:flex-row sm:px-8">
           <p className="flex items-center gap-2">
             © 2026 Connecto. All rights reserved.
-          </p>
-          <p className="flex items-center gap-1.5">
-            Made with <span className="text-brand font-bold">❤</span> for better
-            conversations.
           </p>
         </div>
       </div>

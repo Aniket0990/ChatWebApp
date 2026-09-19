@@ -114,7 +114,7 @@ function Bubble({ children, time, mine = false }) {
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
       <span
-        className={`max-w-[85%] whitespace-pre-line rounded-[14px] px-3.5 py-2 text-[11px] leading-snug ${
+        className={`max-w-[88%] whitespace-pre-line rounded-[14px] px-3 py-2 text-[10.5px] leading-snug sm:max-w-[85%] sm:px-3.5 sm:text-[11px] ${
           mine
             ? "rounded-br-[3px] bg-[#FFEFE5] text-[#1F1F1F]"
             : "rounded-bl-[3px] border border-[#EAE2D5] bg-white text-[#1F1F1F] shadow-[0_2px_8px_-4px_rgba(0,0,0,0.04)]"
@@ -132,10 +132,11 @@ function Bubble({ children, time, mine = false }) {
 
 function DesktopPreview() {
   return (
-    <div className="overflow-hidden rounded-[24px] border border-[#EAE2D5] bg-white shadow-[0_22px_55px_-20px_rgba(36,36,36,0.12)]">
+    <div className="w-full overflow-hidden rounded-[24px] border border-[#EAE2D5] bg-white shadow-[0_22px_55px_-20px_rgba(36,36,36,0.12)]">
       <div className="flex h-[400px] sm:h-[430px]">
-        {/* Unified Left Sidebar */}
-        <div className="flex w-[205px] sm:w-[220px] shrink-0 flex-col border-r border-[#EAE2D5] bg-white p-3.5">
+        {/* Unified Left Sidebar — percentage width so the window never outgrows
+            narrow phone screens, clamped so desktop keeps its 220px rail. */}
+        <div className="flex w-[46%] min-w-[150px] max-w-[220px] shrink-0 flex-col border-r border-[#EAE2D5] bg-white p-3 sm:p-3.5">
           {/* Brand header */}
           <div className="flex items-center gap-2 pb-3">
             <img src="/logo.svg" alt="" className="h-5 w-5 shrink-0" style={{ width: 20, height: 20 }} />
@@ -149,7 +150,7 @@ function DesktopPreview() {
             {TABS.map(({ icon, label, active }) => (
               <div
                 key={label}
-                className={`flex items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition ${
+                className={`flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-[10.5px] font-medium transition sm:gap-2.5 sm:px-2.5 sm:text-[11px] ${
                   active
                     ? "bg-[#FFEFE2] font-semibold text-[#FF7A1A]"
                     : "text-[#555555] hover:bg-[#FAF6F0]"
@@ -164,7 +165,7 @@ function DesktopPreview() {
           </div>
 
           {/* Search bar */}
-          <div className="mb-2.5 flex items-center gap-2 rounded-[8px] bg-[#FAF6F0] px-2.5 py-1.5 text-[10px] text-[#888888]">
+          <div className="mb-2.5 flex items-center gap-2 rounded-[8px] bg-[#FAF6F0] px-2 py-1.5 text-[10px] text-[#888888] sm:px-2.5">
             <FiSearch className="text-[11px] text-[#888888] shrink-0" />
             <span className="truncate">Search connections...</span>
           </div>
@@ -174,7 +175,7 @@ function DesktopPreview() {
             {CONNECTIONS.map((c) => (
               <div
                 key={c.name}
-                className={`flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition ${
+                className={`flex items-center gap-2 rounded-[10px] px-1.5 py-1.5 transition sm:gap-2.5 sm:px-2 ${
                   c.active ? "bg-[#FFF4EB]" : "hover:bg-[#FAF6F0]"
                 }`}
               >
@@ -188,7 +189,7 @@ function DesktopPreview() {
                   size={26}
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[10.5px] font-semibold text-[#1F1F1F]">
+                  <span className="block truncate text-[10px] font-semibold text-[#1F1F1F] sm:text-[10.5px]">
                     {c.name}
                   </span>
                   <span className="block truncate text-[9px] text-[#888888]">
@@ -209,7 +210,7 @@ function DesktopPreview() {
         {/* Right Conversation Panel */}
         <div className="flex min-w-0 flex-1 flex-col bg-[#FAF7F2]">
           {/* Header */}
-          <div className="flex items-center gap-2.5 border-b border-[#EAE2D5] bg-white px-4 py-3">
+          <div className="flex items-center gap-2 border-b border-[#EAE2D5] bg-white px-3 py-2.5 sm:gap-2.5 sm:px-4 sm:py-3">
             <PreviewAvatar name="user1" initial="U" color="#FF7A1A" size={28} online />
             <span className="min-w-0">
               <span className="block truncate text-[11.5px] font-bold text-[#1F1F1F]">
@@ -220,16 +221,16 @@ function DesktopPreview() {
                 Online
               </span>
             </span>
-            <span className="ml-auto flex items-center gap-3.5 text-[13px] text-[#777777]">
-              <FiSearch className="cursor-pointer hover:text-ink" />
+            <span className="ml-auto flex items-center gap-2.5 text-[12.5px] text-[#777777] sm:gap-3.5 sm:text-[13px]">
+              <FiSearch className="hidden cursor-pointer hover:text-ink sm:inline-block" />
               <FiPhone className="cursor-pointer hover:text-ink" />
-              <FiVideo className="cursor-pointer hover:text-ink" />
+              <FiVideo className="hidden cursor-pointer hover:text-ink sm:inline-block" />
               <FiMoreVertical className="cursor-pointer hover:text-ink" />
             </span>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 space-y-3 overflow-hidden p-4">
+          <div className="flex-1 space-y-3 overflow-hidden p-3 sm:p-4">
             <Bubble time="10:18 pm">{"Hi\nHow are you?"}</Bubble>
             <Bubble mine time="10:19 pm">
               {"Hey!\nI'm good. How about you?"}
@@ -241,10 +242,10 @@ function DesktopPreview() {
           </div>
 
           {/* Bottom input */}
-          <div className="flex items-center gap-2.5 border-t border-[#EAE2D5] bg-white px-4 py-3">
-            <FiPaperclip className="cursor-pointer text-[14px] text-[#777777] hover:text-[#FF7A1A]" />
-            <FiSmile className="cursor-pointer text-[14px] text-[#777777] hover:text-[#FF7A1A]" />
-            <span className="min-w-0 flex-1 truncate rounded-full border border-[#EAE2D5] bg-[#FAF6F0] px-4 py-1.5 text-[10.5px] text-[#888888]">
+          <div className="flex items-center gap-2 border-t border-[#EAE2D5] bg-white px-3 py-2.5 sm:gap-2.5 sm:px-4 sm:py-3">
+            <FiPaperclip className="hidden cursor-pointer text-[14px] text-[#777777] hover:text-[#FF7A1A] sm:inline-block" />
+            <FiSmile className="hidden cursor-pointer text-[14px] text-[#777777] hover:text-[#FF7A1A] sm:inline-block" />
+            <span className="min-w-0 flex-1 truncate rounded-full border border-[#EAE2D5] bg-[#FAF6F0] px-3 py-1.5 text-[10.5px] text-[#888888] sm:px-4">
               Type a message...
             </span>
             <span className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full bg-[#FF7A1A] text-[11px] text-white shadow-xs transition hover:bg-[#E9680D]">
@@ -259,7 +260,7 @@ function DesktopPreview() {
 
 function PhonePreview() {
   return (
-    <div className="w-[208px] rounded-[32px] border-[6px] border-[#222222] bg-[#222222] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)]">
+    <div className="w-[208px] max-w-full rounded-[32px] border-[6px] border-[#222222] bg-[#222222] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)]">
       <div className="overflow-hidden rounded-[26px] bg-[#FAF7F2]">
         {/* Notch / Speaker */}
         <div className="flex justify-center bg-[#222222] pt-1.5 pb-1">
