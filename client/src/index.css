@@ -73,6 +73,63 @@ html.dark {
   animation: pulseHighlight 1.6s ease-in-out;
 }
 
+/*
+ * Floating reply button on message bubbles.
+ * Pointer devices: hidden until the message row is hovered/focused.
+ * Touch devices: always visible, since hover does not exist there.
+ */
+.reply-fab {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (hover: hover) {
+  .reply-fab {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .group:hover .reply-fab,
+  .group:focus-within .reply-fab {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+/*
+ * WhatsApp-style message bubble tail: a curved hook protruding from the
+ * top-outer corner (right for own messages, left for received ones).
+ * `background: inherit` keeps the tail the same colour as the bubble in both
+ * light and dark mode. The matching top corner of the bubble is squared
+ * (`rounded-t*-none`) so the tail joins it flush.
+ */
+.bubble-tail-left::after,
+.bubble-tail-right::after {
+  content: "";
+  position: absolute;
+  /* -1px so the tail's top edge lines up with the bubble's outer top edge */
+  top: -1px;
+  width: 8px;
+  height: 14px;
+  background: inherit;
+  pointer-events: none;
+  /* Outline that continues the bubble's own border around the tail */
+  border: 1px solid;
+  border-color: inherit;
+}
+
+.bubble-tail-right::after {
+  right: -8px;
+  border-left: none;
+  border-bottom-right-radius: 8px 14px;
+}
+
+.bubble-tail-left::after {
+  left: -8px;
+  border-right: none;
+  border-bottom-left-radius: 8px 14px;
+}
+
 /* Custom sleek scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

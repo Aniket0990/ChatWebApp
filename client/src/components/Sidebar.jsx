@@ -103,8 +103,13 @@ export default function Sidebar({
           >
             <FiUserPlus className="text-lg" />
             {pendingCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white text-white text-[9px] font-bold">
-                {pendingCount > 9 ? "9+" : pendingCount}
+              <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center">
+                {/* Outer animated ping halo/ring */}
+                <span className="absolute inline-flex h-full w-full rounded-full bg-[#FF8624] opacity-80 animate-ping" />
+                {/* Solid inner badge */}
+                <span className="relative min-w-[16px] h-4 px-1 inline-flex items-center justify-center rounded-full bg-gradient-to-br from-[#ff8624] to-[#FF943A] text-white text-[9px] font-bold shadow-xs">
+                  {pendingCount > 9 ? "9+" : pendingCount}
+                </span>
               </span>
             )}
           </button>

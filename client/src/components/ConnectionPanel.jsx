@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Avatar from "./Avatar";
+import UseProfileDetail from "./UseProfileDetail";
 import {
   useAcceptConnection,
   useCancelConnectionRequest,
@@ -38,6 +39,7 @@ export default function ConnectionPanel({
 }) {
   const [activeTab, setActiveTab] = useState("all");
   const [userToRemove, setUserToRemove] = useState(null);
+  const [selectedProfile, setSelectedProfile] = useState(null);
 
   // Send Request tab
   const [searchQuery, setSearchQuery] = useState("");
@@ -127,23 +129,20 @@ export default function ConnectionPanel({
   // ---------- JSX ----------
   return (
     <div
-      className={`absolute inset-0 z-50 flex flex-col transition-transform duration-300 ease-in-out ${panelBg} ${
-        isOpen ? "translate-x-0" : "translate-x-full"
-      }`}
+      className={`absolute inset-0 z-50 flex flex-col transition-transform duration-300 ease-in-out ${panelBg} ${isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
     >
       {/* HEADER */}
       <div
-        className={`h-16 px-4 flex items-center gap-3 border-b shrink-0 transition-colors shadow-xs ${borderColor} ${
-          dm ? "bg-[#202c33] text-[#e9edef]" : "bg-[#FAF8F5] text-gray-900"
-        }`}
+        className={`h-16 px-4 flex items-center gap-3 border-b shrink-0 transition-colors shadow-xs ${borderColor} ${dm ? "bg-[#202c33] text-[#e9edef]" : "bg-[#FAF8F5] text-gray-900"
+          }`}
       >
         <button
           onClick={handleClose}
-          className={`p-2 rounded-full transition cursor-pointer ${
-            dm
+          className={`p-2 rounded-full transition cursor-pointer ${dm
               ? "text-gray-300 hover:text-[#FF8624] hover:bg-white/10"
               : "text-gray-600 hover:text-[#FF8624] hover:bg-[#FFF2E2]"
-          }`}
+            }`}
           title="Back to chats"
         >
           <FiArrowLeft className="text-xl" />
@@ -153,19 +152,28 @@ export default function ConnectionPanel({
         </h2>
       </div>
 
-      {/* TABS — Karyah v-3 pill style */}
+      {/* TABS — Karyah v-3 pill style with smooth sliding indicator */}
       <div
-        className={`px-3 py-2.5 border-b shrink-0 transition-colors ${borderColor} ${
-          dm ? "bg-[#111b21]" : "bg-[#FAF8F5]"
-        }`}
+        className={`px-3 py-2.5 border-b shrink-0 transition-colors ${borderColor} ${dm ? "bg-[#111b21]" : "bg-[#FAF8F5]"
+          }`}
       >
         <div
-          className={`p-1 rounded-xl flex items-center gap-1 border transition-all ${
-            dm
+          className={`relative p-1 rounded-xl flex items-center border transition-all ${dm
               ? "bg-[#1c272e] border-[#2a3942]"
               : "bg-[#F1ECE2] border-[#E8E2D6]"
-          }`}
+            }`}
         >
+          {/* Smooth sliding active tab pill indicator */}
+          <div
+            className={`absolute top-1 bottom-1 rounded-lg transition-transform duration-300 ease-out shadow-xs pointer-events-none ${dm ? "bg-[#2a3942]" : "bg-white"
+              }`}
+            style={{
+              width: "calc((100% - 8px) / 3)",
+              left: "4px",
+              transform: `translateX(${TABS.findIndex((t) => t.id === activeTab) * 100}%)`,
+            }}
+          />
+
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
@@ -174,24 +182,22 @@ export default function ConnectionPanel({
               <button
                 key={tab.id}
                 onClick={() => selectTab(tab.id)}
-                className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 px-1 sm:px-2 rounded-lg text-[11px] sm:text-xs font-semibold transition-all duration-150 cursor-pointer select-none ${
-                  isActive
+                className={`relative z-10 flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 px-1 sm:px-2 rounded-lg text-[11px] sm:text-xs font-semibold transition-colors duration-200 cursor-pointer select-none ${isActive
                     ? dm
-                      ? "bg-[#2a3942] text-orange-400 shadow-xs"
-                      : "bg-white text-[#ea580c] shadow-xs"
+                      ? "text-orange-400"
+                      : "text-[#ea580c]"
                     : dm
                       ? "text-gray-400 hover:text-gray-200"
                       : "text-gray-500 hover:text-gray-800"
-                }`}
+                  }`}
               >
                 <Icon
-                  className={`text-sm shrink-0 ${
-                    isActive
+                  className={`text-sm shrink-0 transition-colors duration-200 ${isActive
                       ? dm
                         ? "text-orange-400"
                         : "text-[#ea580c]"
                       : "text-gray-400"
-                  }`}
+                    }`}
                 />
                 <span className="truncate">{tab.label}</span>
                 {/* Badge for received requests — filled circle count */}
@@ -213,7 +219,7 @@ export default function ConnectionPanel({
 
         {/* ===== ALL CONNECTIONS TAB ===== */}
         {activeTab === "all" && (
-          <div>
+          <div key="all" className="animate-fadeIn">
             {loadingAll ? (
               <LoadingSpinner dm={dm} />
             ) : connections.length === 0 ? (
@@ -229,10 +235,10 @@ export default function ConnectionPanel({
                   <div
                     key={c._id}
                     onClick={() => {
-                      if (onSelectUser) {
-                        onSelectUser(c);
-                        onClose();
-                      }
+                      setSelectedProfile({
+                        ...c,
+                        connectionType: "connected",
+                      });
                     }}
                     className={`flex items-center gap-3 px-4 py-3 ${cardHover} transition-colors cursor-pointer`}
                   >
@@ -243,9 +249,8 @@ export default function ConnectionPanel({
                         className="w-11 h-11 rounded-full object-cover text-lg"
                       />
                       <span
-                        className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 ${
-                          dm ? "border-[#111b21]" : "border-white"
-                        } ${c.isOnline ? "bg-emerald-500" : dm ? "bg-gray-600" : "bg-gray-300"}`}
+                        className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 ${dm ? "border-[#111b21]" : "border-white"
+                          } ${c.isOnline ? "bg-emerald-500" : dm ? "bg-gray-600" : "bg-gray-300"}`}
                       />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -254,11 +259,10 @@ export default function ConnectionPanel({
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span
-                        className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-0.5 rounded-full border ${
-                          dm
+                        className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-0.5 rounded-full border ${dm
                             ? "bg-emerald-950/40 text-emerald-400 border-emerald-800/50"
                             : "bg-emerald-50 text-emerald-600 border-emerald-200"
-                        }`}
+                          }`}
                       >
                         Connected
                       </span>
@@ -268,11 +272,10 @@ export default function ConnectionPanel({
                           e.stopPropagation();
                           setUserToRemove(c);
                         }}
-                        className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-                          dm
+                        className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${dm
                             ? "text-gray-400 hover:text-rose-400 hover:bg-rose-500/15"
                             : "text-gray-400 hover:text-rose-600 hover:bg-rose-50"
-                        }`}
+                          }`}
                         title={`Remove ${c.name} from connections`}
                       >
                         <FiUserX className="text-base" />
@@ -287,15 +290,14 @@ export default function ConnectionPanel({
 
         {/* ===== SEND REQUEST TAB ===== */}
         {activeTab === "send" && (
-          <div>
+          <div key="send" className="animate-fadeIn">
             {/* Search input */}
             <div className={`p-3 sticky top-0 z-10 ${panelBg} border-b ${borderColor}`}>
               <div
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl ${inputBg} border ${
-                  dm
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl ${inputBg} border ${dm
                     ? "border-transparent focus-within:border-[#FF8624]"
                     : "border-transparent focus-within:border-[#FF8624] focus-within:bg-[#FAF8F5]"
-                } transition-all`}
+                  } transition-all`}
               >
                 <FiSearch className="text-gray-400 shrink-0 text-sm" />
                 <input
@@ -344,7 +346,13 @@ export default function ConnectionPanel({
                   return (
                     <div
                       key={u._id}
-                      className={`flex items-center gap-3 px-4 py-3 ${cardHover} transition-colors`}
+                      onClick={() => {
+                        setSelectedProfile({
+                          ...u,
+                          connectionType: "send",
+                        });
+                      }}
+                      className={`flex items-center gap-3 px-4 py-3 ${cardHover} transition-colors cursor-pointer`}
                     >
                       <div className="relative shrink-0">
                         <Avatar
@@ -353,9 +361,8 @@ export default function ConnectionPanel({
                           className="w-11 h-11 rounded-full object-cover text-lg"
                         />
                         <span
-                          className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 ${
-                            dm ? "border-[#111b21]" : "border-white"
-                          } ${u.isOnline ? "bg-emerald-500" : dm ? "bg-gray-600" : "bg-gray-300"}`}
+                          className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 ${dm ? "border-[#111b21]" : "border-white"
+                            } ${u.isOnline ? "bg-emerald-500" : dm ? "bg-gray-600" : "bg-gray-300"}`}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -364,61 +371,62 @@ export default function ConnectionPanel({
                       </div>
 
                       {/* Action button */}
-                      {isAccepted ? (
-                        <span
-                          className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full border ${
-                            dm
-                              ? "bg-emerald-950/40 text-emerald-400 border-emerald-800/50"
-                              : "bg-emerald-50 text-emerald-600 border-emerald-200"
-                          }`}
-                        >
-                          Connected
-                        </span>
-                      ) : isPending ? (
-                        <div className="flex items-center gap-1.5 shrink-0">
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="shrink-0"
+                      >
+                        {isAccepted ? (
                           <span
-                            className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full ${
-                              dm
-                                ? "bg-amber-900/30 text-amber-400"
-                                : "bg-amber-50 text-amber-600 border border-amber-200/60"
-                            }`}
+                            className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full border ${dm
+                                ? "bg-emerald-950/40 text-emerald-400 border-emerald-800/50"
+                                : "bg-emerald-50 text-emerald-600 border-emerald-200"
+                              }`}
                           >
-                            Pending
+                            Connected
                           </span>
-                          {cs?.isSender !== false && (
-                            <button
-                              onClick={() =>
-                                cancelRequest(cs?.connectionId || u._id)
-                              }
-                              disabled={
-                                cancellingId === (cs?.connectionId || u._id)
-                              }
-                              className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
-                                dm
-                                  ? "border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500"
-                                  : "border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
-                              } disabled:opacity-50 disabled:cursor-not-allowed`}
-                              title="Cancel connection request"
+                        ) : isPending ? (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span
+                              className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full ${dm
+                                  ? "bg-amber-900/30 text-amber-400"
+                                  : "bg-amber-50 text-amber-600 border border-amber-200/60"
+                                }`}
                             >
-                              {cancellingId === (cs?.connectionId || u._id)
-                                ? "Cancelling..."
-                                : "Cancel"}
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => sendRequest(u._id)}
-                          disabled={isSending}
-                          className={`text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${
-                            dm
-                              ? "border-[#FF8624] text-[#FF8624] hover:bg-[#e8873a] hover:text-white"
-                              : "border-[#FF8624] text-[#FF8624] hover:bg-[#e8873a] hover:text-white"
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {isSending ? "Sending..." : "Connect"}
-                        </button>
-                      )}
+                              Pending
+                            </span>
+                            {cs?.isSender !== false && (
+                              <button
+                                onClick={() =>
+                                  cancelRequest(cs?.connectionId || u._id)
+                                }
+                                disabled={
+                                  cancellingId === (cs?.connectionId || u._id)
+                                }
+                                className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer ${dm
+                                    ? "border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500"
+                                    : "border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                title="Cancel connection request"
+                              >
+                                {cancellingId === (cs?.connectionId || u._id)
+                                  ? "Cancelling..."
+                                  : "Cancel"}
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => sendRequest(u._id)}
+                            disabled={isSending}
+                            className={`text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${dm
+                                ? "border-[#FF8624] text-[#FF8624] hover:bg-[#e8873a] hover:text-white"
+                                : "border-[#FF8624] text-[#FF8624] hover:bg-[#e8873a] hover:text-white"
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {isSending ? "Sending..." : "Connect"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -429,7 +437,7 @@ export default function ConnectionPanel({
 
         {/* ===== RECEIVED REQUESTS TAB ===== */}
         {activeTab === "received" && (
-          <div>
+          <div key="received" className="animate-fadeIn">
             {loadingReceived ? (
               <LoadingSpinner dm={dm} />
             ) : receivedRequests.length === 0 ? (
@@ -446,7 +454,14 @@ export default function ConnectionPanel({
                   return (
                     <div
                       key={req._id}
-                      className={`flex items-center gap-3 px-4 py-3 ${cardHover} transition-colors`}
+                      onClick={() => {
+                        setSelectedProfile({
+                          ...req.sender,
+                          connectionType: "received",
+                          requestId: req._id,
+                        });
+                      }}
+                      className={`flex items-center gap-3 px-4 py-3 ${cardHover} transition-colors cursor-pointer`}
                     >
                       <div className="relative shrink-0">
                         <Avatar
@@ -455,15 +470,13 @@ export default function ConnectionPanel({
                           className="w-11 h-11 rounded-full object-cover text-lg"
                         />
                         <span
-                          className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 ${
-                            dm ? "border-[#111b21]" : "border-white"
-                          } ${
-                            req.sender?.isOnline
+                          className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 ${dm ? "border-[#111b21]" : "border-white"
+                            } ${req.sender?.isOnline
                               ? "bg-emerald-500"
                               : dm
-                              ? "bg-gray-600"
-                              : "bg-gray-300"
-                          }`}
+                                ? "bg-gray-600"
+                                : "bg-gray-300"
+                            }`}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -475,16 +488,18 @@ export default function ConnectionPanel({
                       </div>
 
                       {/* Accept / Decline */}
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 shrink-0"
+                      >
                         <button
                           onClick={() => acceptRequest(req._id, req.sender?.name)}
                           disabled={isProcessing}
                           title="Accept"
-                          className={`w-8 h-8 flex items-center justify-center rounded-full transition cursor-pointer ${
-                            dm
+                          className={`w-8 h-8 flex items-center justify-center rounded-full transition cursor-pointer ${dm
                               ? "bg-[#FF8624]/50 text-[#FF8624] hover:bg-[#e8873a]"
                               : "bg-[#fff4e6] text-[#FF8624] hover:bg-[#e8873a] hover:text-white"
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <FiCheck className="text-sm" />
                         </button>
@@ -492,11 +507,10 @@ export default function ConnectionPanel({
                           onClick={() => declineRequest(req._id)}
                           disabled={isProcessing}
                           title="Decline"
-                          className={`w-8 h-8 flex items-center justify-center rounded-full transition cursor-pointer ${
-                            dm
+                          className={`w-8 h-8 flex items-center justify-center rounded-full transition cursor-pointer ${dm
                               ? "bg-red-900/30 text-red-400 hover:bg-red-700"
                               : "bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <FiX className="text-sm" />
                         </button>
@@ -510,6 +524,51 @@ export default function ConnectionPanel({
         )}
       </div>
 
+      {/* USER PROFILE DETAIL MODAL */}
+      {selectedProfile && (
+        <UseProfileDetail
+          isOpen={Boolean(selectedProfile)}
+          onClose={() => setSelectedProfile(null)}
+          user={selectedProfile}
+          connectionType={selectedProfile.connectionType}
+          darkMode={darkMode}
+          onSendRequest={(userId) => {
+            sendRequest(userId);
+            setSelectedProfile((prev) =>
+              prev
+                ? {
+                  ...prev,
+                  connectionStatus: { status: "pending", isSender: true },
+                }
+                : null,
+            );
+          }}
+          onCancelRequest={(target) => {
+            cancelRequest(target);
+            setSelectedProfile((prev) =>
+              prev
+                ? {
+                  ...prev,
+                  connectionStatus: null,
+                }
+                : null,
+            );
+          }}
+          onAcceptRequest={(connectionId, senderName) => {
+            acceptRequest(connectionId, senderName);
+            setSelectedProfile(null);
+          }}
+          onDeclineRequest={(connectionId) => {
+            declineRequest(connectionId);
+            setSelectedProfile(null);
+          }}
+          onConnectionRemoved={() => {
+            setSelectedProfile(null);
+            onConnectionAccepted?.();
+          }}
+        />
+      )}
+
       {/* REMOVE CONNECTION CONFIRMATION POPUP */}
       {userToRemove && (
         <div
@@ -518,11 +577,10 @@ export default function ConnectionPanel({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl border transform transition-all animate-scaleUp ${
-              dm
+            className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl border transform transition-all animate-scaleUp ${dm
                 ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
                 : "bg-[#FAF8F5] border-[#E8E2D6] text-gray-800"
-            }`}
+              }`}
           >
             <div className="flex flex-col items-center text-center">
               {/* Icon Badge */}
@@ -541,9 +599,8 @@ export default function ConnectionPanel({
 
               {/* User Card Preview */}
               <div
-                className={`w-full flex items-center gap-3 p-3 rounded-xl mb-5 border ${
-                  dm ? "bg-[#111b21] border-[#2a3942]" : "bg-white border-[#E8E2D6]"
-                }`}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl mb-5 border ${dm ? "bg-[#111b21] border-[#2a3942]" : "bg-white border-[#E8E2D6]"
+                  }`}
               >
                 <Avatar
                   src={userToRemove.profilePic}
@@ -566,11 +623,10 @@ export default function ConnectionPanel({
                   type="button"
                   disabled={removeMutation.isPending}
                   onClick={() => setUserToRemove(null)}
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
-                    dm
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${dm
                       ? "border-[#2a3942] text-gray-300 hover:bg-[#111b21]"
                       : "border-gray-200 text-gray-700 hover:bg-gray-100"
-                  } disabled:opacity-50`}
+                    } disabled:opacity-50`}
                 >
                   Cancel
                 </button>
