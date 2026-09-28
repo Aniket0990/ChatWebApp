@@ -1,4 +1,5 @@
 import api from "../utils/axios";
+import { prepareFileForUpload } from "../utils/compressFile";
 
 /* ------------------------------ messages api ---------------------------- */
 
@@ -45,11 +46,14 @@ export const clearChatMessages = (chatId) =>
 
 /**
  * Upload a file and return its public url.
+ * Oversized images are compressed down to the size cap before upload; anything
+ * that can't be brought under the limit throws so the caller can report it.
  * Uses explicit multipart header expected by backend.
  */
 export const uploadFile = async (file) => {
+  const prepared = await prepareFileForUpload(file);
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", prepared);
 
   const { data } = await api.post("/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },

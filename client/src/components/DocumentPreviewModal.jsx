@@ -282,13 +282,12 @@ export default function DocumentPreviewModal({
                 alt="Preview"
                 draggable={false}
                 onError={() => setLoadError(true)}
+                // Fill the viewer area so the image scales with the modal
+                // (including fullscreen) instead of staying a fixed size.
+                className="w-full h-full object-contain select-none"
                 style={{
                   transform: `scale(${zoom}) rotate(${rotation}deg)`,
                   transition: "transform 0.1s ease",
-                  maxHeight: "60vh",
-                  maxWidth: "100%",
-                  objectFit: "contain",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                 }}
               />
             </div>
@@ -307,7 +306,7 @@ export default function DocumentPreviewModal({
       case FileType.VIDEO:
         return (
           <div className="flex-1 flex items-center justify-center bg-black p-4">
-            <video src={resolvedUrl} controls className="max-h-[60vh] max-w-full" />
+            <video src={resolvedUrl} controls className="max-h-full max-w-full" />
           </div>
         );
       case FileType.AUDIO:

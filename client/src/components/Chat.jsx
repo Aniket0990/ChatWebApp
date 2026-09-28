@@ -8,6 +8,7 @@ import {
   useCallback,
 } from "react";
 import axios from "../utils/axios";
+import { prepareFileForUpload } from "../utils/compressFile";
 import { socket } from "../socket/socket";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
@@ -1101,25 +1102,71 @@ export default function Chat() {
     }
   };
 
-  // Add files to the pending list (max 10 total)
-  const addPendingFiles = (fileList) => {
-    setPendingFiles((prev) => {
-      const remaining = 10 - prev.length;
-      if (remaining <= 0) {
-        toast.warn("Maximum 10 files allowed at once");
-        return prev;
+  // Add files to the pending list (max 10 total). Anything over the 2 MB cap is
+  // compressed first (images) or rejected up front, so the user gets feedback
+  // immediately instead of a failed send later.
+  const addPendingFiles = async (fileList) => {
+    const incoming = Array.from(fileList);
+    if (incoming.length === 0) return;
+
+    const remaining = 10 - pendingFiles.length;
+    if (remaining <= 0) {
+      toast.warn("Maximum 10 files allowed at once");
+      return;
+    }
+
+    const candidates = incoming.slice(0, remaining);
+    if (incoming.length > remaining) {
+      toast.warn(`Only ${remaining} more file${remaining > 1 ? "s" : ""} can be added (max 10)`);
+    }
+
+    const results = await Promise.all(
+      candidates.map(async (file) => {
+        try {
+          const prepared = await prepareFileForUpload(file);
+          return { file: prepared, original: file, ok: true };
+        } catch {
+          return { file, original: file, ok: false };
+        }
+      }),
+    );
+
+    const accepted = [];
+    const rejected = [];
+    let compressedCount = 0;
+
+    results.forEach((result) => {
+      if (!result.ok) {
+        rejected.push(result.original.name);
+        return;
       }
-      const toAdd = fileList.slice(0, remaining);
-      if (fileList.length > remaining) {
-        toast.warn(`Only ${remaining} more file${remaining > 1 ? "s" : ""} can be added (max 10)`);
-      }
-      const newEntries = toAdd.map((file) => ({
+      if (result.file !== result.original) compressedCount += 1;
+      accepted.push({
         id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        file,
-        previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
-      }));
-      return [...prev, ...newEntries];
+        file: result.file,
+        previewUrl: result.file.type.startsWith("image/")
+          ? URL.createObjectURL(result.file)
+          : null,
+      });
     });
+
+    if (compressedCount > 0) {
+      toast.info(
+        `${compressedCount} file${compressedCount > 1 ? "s" : ""} compressed to fit the 2 MB limit`,
+      );
+    }
+
+    if (rejected.length > 0) {
+      toast.error(
+        rejected.length === 1
+          ? `"${rejected[0]}" is over 2 MB and can't be compressed`
+          : `${rejected.length} files are over 2 MB and can't be compressed`,
+      );
+    }
+
+    if (accepted.length > 0) {
+      setPendingFiles((prev) => [...prev, ...accepted].slice(0, 10));
+    }
   };
 
   // Remove one pending file and clean up its object URL
@@ -2063,7 +2110,7 @@ export default function Chat() {
             <div
               ref={messagesContainerRef}
               onScroll={handleScroll}
-              className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-4 relative"
+              className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 py-4 space-y-4 relative"
             >
               {Object.keys(groupedMessages).length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 text-sm">
@@ -2109,10 +2156,10 @@ export default function Chat() {
                           onClick={() => {
                             if (isSelectMode) toggleSelectMessage(m);
                           }}
-                          className={`flex items-start gap-2 group transition-all duration-300 ${
+                          className={`message-row flex items-start gap-2 group transition-all duration-300 w-full min-w-0 ${
                             isSelf
-                              ? "justify-end pl-8 sm:pl-9"
-                              : "justify-start pr-8 sm:pr-9"
+                              ? "message-row-self justify-end"
+                              : "message-row-other justify-start"
                           } ${isHighlighted ? "highlight-pulse" : ""} ${
                             isSelectMode
                               ? "cursor-pointer select-none rounded-xl"
@@ -2144,7 +2191,7 @@ export default function Chat() {
                           )}
 
                           <div
-                            className={`flex flex-col max-w-md md:max-w-lg ${
+                            className={`flex flex-col min-w-0 max-w-md md:max-w-lg ${
                               isSelf ? "items-end" : "items-start"
                             }`}
                           >
@@ -2239,7 +2286,7 @@ export default function Chat() {
                           e.stopPropagation();
                           scrollToMessage(m.replyTo._id);
                         }}
-                        className={`cursor-pointer rounded-xl p-2.5 mb-1 border-l-[3.5px] border-[#FF8624] text-xs w-full transition-all ${
+                        className={`cursor-pointer rounded-xl p-2.5 mb-1 border-l-[3.5px] border-[#FF8624] text-xs w-full min-w-0 transition-all ${
                           isSelf
                             ? darkMode
                               ? "bg-black/30 hover:bg-black/45 text-gray-300 border border-white/5"
@@ -2451,13 +2498,13 @@ export default function Chat() {
                                           onClick={() =>
                                             setPreviewFile({ url: m.fileUrl })
                                           }
-                                          className="w-full max-w-[280px] sm:max-w-[320px] max-h-[320px] object-cover cursor-pointer hover:scale-[1.015] transition-transform duration-200 block"
+                                          className="w-[140px] h-[140px] sm:w-[200px] sm:h-[200px] object-cover cursor-pointer hover:scale-[1.015] transition-transform duration-200 block"
                                         />
                                       </div>
                                     ) : (
                                       /* Docs: Modern card with preview & download */
                                       <div
-                                        className={`flex items-center gap-3 p-2.5 rounded-xl border transition max-w-[280px] sm:max-w-[300px] ${
+                                        className={`flex items-center gap-3 p-2.5 rounded-xl border transition w-[220px] sm:w-[300px] ${
                                           isSelf
                                             ? darkMode
                                               ? "bg-black/30 border-orange-500/20 text-[#fdf4ee] hover:bg-black/40 shadow-xs"
@@ -2468,7 +2515,7 @@ export default function Chat() {
                                         }`}
                                       >
                                         <div
-                                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-bold tracking-wider shrink-0 shadow-2xs ${
+                                          className={`sm:w-10 sm:h-10 w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-bold tracking-wider shrink-0 shadow-2xs ${
                                             info.type === "pdf"
                                               ? "bg-red-50 text-red-600 border border-red-200/90 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/40"
                                               : info.type === "video"

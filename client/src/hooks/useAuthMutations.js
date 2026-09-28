@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import api from "../utils/axios";
+import { prepareFileForUpload } from "../utils/compressFile";
 
 /* ------------------------------- auth api ------------------------------- */
 
@@ -24,8 +25,10 @@ export const changePassword = async (payload) => {
 };
 
 export const uploadFile = async (file) => {
+  // Shrink oversized images to the size cap before they leave the browser.
+  const prepared = await prepareFileForUpload(file);
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", prepared);
 
   const { data } = await api.post("/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },

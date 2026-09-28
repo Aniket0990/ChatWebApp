@@ -19,30 +19,51 @@ const docStorage = multer.diskStorage({
     cb(null, `${Date.now()}-${safe}`);
   },
 });
-const uploadDoc = multer({ storage: docStorage, limits: { fileSize: 25 * 1024 * 1024 } });
-
-router.post("/", uploadDoc.single("file"), async (req, res) => {
-  try {
-    const filePath = req.file.path;
-    const isImage = req.file.mimetype && req.file.mimetype.startsWith("image/");
-
-    if (isImage) {
-      // Images work fine on Cloudinary's image pipeline
-      const result = await cloudinary.uploader.upload(filePath);
-      fs.unlink(filePath, () => {});
-      return res.json({ url: result.secure_url });
-    }
-
-    // Non-image: keep on local disk, return our own serving url
-    res.json({
-      url: `/api/upload/file/${encodeURIComponent(req.file.filename)}`,
-      originalName: req.file.originalname,
-    });
-  } catch (error) {
-    console.error("Upload failed:", error);
-    res.status(500).json({ error: "File upload failed" });
-  }
+// Hard cap enforced alongside the client-side compressor
+// (client/src/utils/compressFile.js), so nothing over 2 MB is ever stored.
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2 MB
+const uploadDoc = multer({
+  storage: docStorage,
+  limits: { fileSize: MAX_UPLOAD_BYTES },
 });
+
+router.post(
+  "/",
+  (req, res, next) => {
+    uploadDoc.single("file")(req, res, (err) => {
+      if (!err) return next();
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res
+          .status(413)
+          .json({ error: "File is larger than the 2 MB limit." });
+      }
+      return res.status(400).json({ error: err.message || "Upload failed" });
+    });
+  },
+  async (req, res) => {
+    try {
+      const filePath = req.file.path;
+      const isImage =
+        req.file.mimetype && req.file.mimetype.startsWith("image/");
+
+      if (isImage) {
+        // Images work fine on Cloudinary's image pipeline
+        const result = await cloudinary.uploader.upload(filePath);
+        fs.unlink(filePath, () => {});
+        return res.json({ url: result.secure_url });
+      }
+
+      // Non-image: keep on local disk, return our own serving url
+      res.json({
+        url: `/api/upload/file/${encodeURIComponent(req.file.filename)}`,
+        originalName: req.file.originalname,
+      });
+    } catch (error) {
+      console.error("Upload failed:", error);
+      res.status(500).json({ error: "File upload failed" });
+    }
+  },
+);
 
 // GET /api/upload/file/:filename
 // Authenticated endpoint serving locally-stored documents (pdf, doc, zip...).

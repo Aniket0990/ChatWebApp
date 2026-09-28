@@ -3,7 +3,12 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!--
+    Locked viewport: width=device-width + no user scaling keeps the WebView/APK
+    from pinch-zooming or auto-zooming to "fit" content after a refresh.
+  -->
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
 
   <!-- Primary SEO Metadata -->
   <title>Connecto — Real-Time Chat & Instant Messaging Platform</title>

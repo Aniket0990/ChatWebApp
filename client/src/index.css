@@ -10,6 +10,34 @@ html.dark {
   color-scheme: dark;
 }
 
+/*
+ * Mobile / WebView (APK) hardening.
+ * - `touch-action: pan-x pan-y` allows scrolling but blocks pinch-zoom and
+ *   double-tap zoom (the viewport meta is ignored by some WebViews).
+ * - `text-size-adjust` stops Android's automatic "font boosting", which is
+ *   what makes text look slightly zoomed after a refresh.
+ * - `overflow-x: hidden` on the root prevents the WebView from zooming out to
+ *   fit any content that briefly overflows on first paint.
+ * - `overscroll-behavior: none` kills pull-to-refresh and rubber-band bounce,
+ *   which otherwise re-triggers the viewport resize on reload.
+ */
+html {
+  height: 100%;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: pan-x pan-y;
+}
+
+body {
+  min-height: 100%;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: pan-x pan-y;
+}
+
 
 @keyframes fadeIn {
   from {
@@ -75,24 +103,35 @@ html.dark {
 
 /*
  * Floating reply button on message bubbles.
- * Pointer devices: hidden until the message row is hovered/focused.
- * Touch devices: always visible, since hover does not exist there.
+ * Hidden by default everywhere. Pointer devices reveal it when the message row
+ * is hovered/focused. Touch devices never show it (reply stays available from
+ * the per-message 3-dots menu), which keeps bubbles clean on mobile.
  */
 .reply-fab {
-  opacity: 1;
-  visibility: visible;
+  opacity: 0;
+  visibility: hidden;
 }
 
 @media (hover: hover) {
-  .reply-fab {
-    opacity: 0;
-    visibility: hidden;
-  }
-
   .group:hover .reply-fab,
   .group:focus-within .reply-fab {
     opacity: 1;
     visibility: visible;
+  }
+}
+
+/*
+ * Reserve room beside the bubble for the floating reply button, but only on the
+ * devices where it can actually appear (hover-capable / pointer). Touch layouts
+ * keep the full width so message bubbles never get squeezed on small screens.
+ */
+@media (hover: hover) {
+  .message-row-self {
+    padding-left: 2.25rem;
+  }
+
+  .message-row-other {
+    padding-right: 2.25rem;
   }
 }
 
