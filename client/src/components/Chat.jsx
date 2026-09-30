@@ -136,6 +136,9 @@ export default function Chat() {
   const [editingMessage, setEditingMessage] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [menuPlacement, setMenuPlacement] = useState("down");
+  // Horizontal anchoring of the message action menu ("left" = grows to the
+  // right from the trigger, "right" = grows to the left from the trigger).
+  const [menuAlign, setMenuAlign] = useState("left");
   const [activeReactionId, setActiveReactionId] = useState(null);
   const [pinnedIndex, setPinnedIndex] = useState(0);
   const [highlightedId, setHighlightedId] = useState(null);
@@ -1414,7 +1417,23 @@ export default function Chat() {
     }
   };
 
-  // TOGGLE ACTION MENU WITH DYNAMIC UP/DOWN PLACEMENT
+  // Width of the action menu (w-48) plus a small margin, used to decide which
+  // way it should open so it never gets clipped by the message list edge.
+  const MENU_WIDTH = 200;
+
+  // Pick the horizontal anchor that keeps the menu on screen: open rightwards
+  // from the trigger when there is room, otherwise open leftwards from it.
+  const resolveMenuAlign = (rect) =>
+    rect.left + MENU_WIDTH > window.innerWidth ? "right" : "left";
+
+  // Resolve the action-menu trigger geometry for both click and right-click.
+  const getMenuTriggerRect = (el) => {
+    const trigger =
+      el?.querySelector?.(".message-action-menu-container") || el;
+    return trigger?.getBoundingClientRect();
+  };
+
+  // TOGGLE ACTION MENU WITH DYNAMIC UP/DOWN & LEFT/RIGHT PLACEMENT
   const handleToggleMenu = (e, msgId) => {
     e.stopPropagation();
     if (activeMenuId === msgId) {
@@ -1424,6 +1443,7 @@ export default function Chat() {
     const rect = e.currentTarget.getBoundingClientRect();
     const openUp = rect.bottom > window.innerHeight - 250;
     setMenuPlacement(openUp ? "up" : "down");
+    setMenuAlign(resolveMenuAlign(rect));
     setActiveMenuId(msgId);
   };
 
@@ -1439,6 +1459,10 @@ export default function Chat() {
     setActiveReactionId(null);
     // Open away from the half of the screen the pointer is in
     setMenuPlacement(e.clientY > window.innerHeight / 2 ? "up" : "down");
+    // Anchor to the message's own action button so the menu stays on screen
+    setMenuAlign(
+      resolveMenuAlign(getMenuTriggerRect(e.currentTarget) || e.currentTarget.getBoundingClientRect()),
+    );
     setActiveMenuId(msg._id);
   };
 
@@ -2208,7 +2232,7 @@ export default function Chat() {
 
                             {/* Message Bubble */}
                             <div
-                              className={`relative transition-all shadow-sm border ${
+                              className={`relative transition-all shadow-sm border max-w-full ${
                                 m.fileUrl && !m.content && !m.replyTo
                                   ? "p-2 sm:p-2.5 rounded-2xl"
                                   : "px-4 py-2.5 rounded-2xl"
@@ -2365,8 +2389,10 @@ export default function Chat() {
                                               ? "bottom-full mb-1"
                                               : "top-full mt-1"
                                           } ${
-                                            isSelf ? "right-0" : "left-0"
-                                          } w-48 rounded-2xl shadow-xl border p-1.5 text-xs animate-fadeIn ${
+                                            menuAlign === "right"
+                                              ? "right-0"
+                                              : "left-0"
+                                          } w-48 max-w-[calc(100vw-1.5rem)] rounded-2xl shadow-xl border p-1.5 text-xs animate-fadeIn ${
                                             darkMode
                                               ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
                                               : "bg-[#FAF8F5] border-[#E8E2D6] text-gray-700 shadow-xl"
@@ -2581,7 +2607,7 @@ export default function Chat() {
                                     );
                                   })()}
                                   {m.content && (
-                                    <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">
+                                    <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap break-words">
                                       {renderMessageContent(m.content, isSelf)}
                                     </p>
                                   )}

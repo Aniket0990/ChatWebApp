@@ -9,13 +9,12 @@ import {
   FiCheck,
   FiMenu,
   FiX,
-  FiMessageCircle,
-  FiUsers,
   FiInstagram,
   FiLinkedin,
   FiGithub,
   FiMail,
 } from "react-icons/fi";
+import { FaCommentDots, FaPeopleGroup, FaUserGroup } from "react-icons/fa6";
 
 /* ----------------------------- shared bits ----------------------------- */
 
@@ -34,17 +33,17 @@ const NAV_LINKS = [
 
 const FEATURES = [
   {
-    icon: <FiUsers className="text-[26px]" />,
+    icon: <FaUserGroup className="text-[26px]" />,
     title: "Connect with People",
     text: "Send and receive connection requests and build your network inside Connecto.",
   },
   {
-    icon: <FiMessageCircle className="text-[26px]" />,
+    icon: <FaCommentDots className="text-[26px]" />,
     title: "One-to-One Conversations",
     text: "Chat privately with your connections through simple, real-time messaging.",
   },
   {
-    icon: <FiUsers className="text-[26px]" />,
+    icon: <FaPeopleGroup className="text-[26px]" />,
     title: "Bring Everyone Together",
     text: "Create groups and communicate with multiple people in one shared conversation.",
   },
@@ -243,18 +242,6 @@ function Hero() {
             conversations, and bring everyone together in group chats — all in
             one place.
           </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3.5">
-            <Link to={startHref} className={BTN_PRIMARY}>
-              Get Started
-              <FiArrowRight />
-            </Link>
-            {!user && (
-              <Link to="/login" className={BTN_GHOST}>
-                Login
-              </Link>
-            )}
-          </div>
 
           <ul className="mt-9 space-y-3.5">
             <CheckItem>Connect with people</CheckItem>
@@ -650,7 +637,7 @@ function CallToAction() {
   return (
     <section className="relative">
       <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:py-24">
-        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#FDE8D7] via-[#FDE4CF] to-[#FCE0CA] border border-[#F5DCBE] px-7 py-12 sm:px-12 lg:px-16 lg:py-16 shadow-lg hover:shadow-xl">
+        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#FDE8D7] via-[#FDE4CF] to-[#FCE0CA] border border-[#F5DCBE] px-7 py-12 sm:px-12 lg:px-16 lg:py-8 shadow-lg hover:shadow-xl">
           <div className="pointer-events-none absolute -right-24 -top-24 h-[320px] w-[320px] animate-float-slow rounded-full bg-brand/[0.12] blur-[90px]" />
 
           <div className="relative grid items-center gap-10 lg:grid-cols-[1.05fr_1fr]">
