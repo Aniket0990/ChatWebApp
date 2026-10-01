@@ -109,6 +109,10 @@ export default function Sidebar({
           JSON.stringify(hiddenIds),
         );
       } catch {}
+      // If the currently open chat was hidden by another device, close it here too
+      if (selectedUser?._id && hiddenIds.includes(selectedUser._id)) {
+        onCloseActiveChat?.();
+      }
     };
 
     socket.on("sidebar_pin_sync", handlePinSync);
@@ -117,6 +121,34 @@ export default function Sidebar({
       socket.off("sidebar_pin_sync", handlePinSync);
       socket.off("sidebar_hide_sync", handleHideSync);
     };
+  // selectedUser & onCloseActiveChat must be deps so handleHideSync always
+  // sees the latest open chat when the sync arrives from another device.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.user?._id, selectedUser?._id, onCloseActiveChat]);
+
+  // AUTO-UNHIDE: if a hidden user sends a new message, bring them back to the
+  // sidebar (WhatsApp-style) and sync the unhide to other devices.
+  useEffect(() => {
+    const handleMsgReceived = (msg) => {
+      const senderId = msg.sender?._id || msg.sender;
+      if (!senderId) return;
+      setHiddenUserIds((prev) => {
+        if (!prev.includes(senderId)) return prev;
+        const updated = prev.filter((id) => id !== senderId);
+        try {
+          localStorage.setItem(
+            `connecto_hidden_${user?.user?._id}`,
+            JSON.stringify(updated),
+          );
+        } catch {}
+        // Broadcast the unhide so other sessions of the same account sync
+        socket.emit("sidebar_hide_sync", { hiddenIds: updated });
+        return updated;
+      });
+    };
+
+    socket.on("message received", handleMsgReceived);
+    return () => socket.off("message received", handleMsgReceived);
   }, [user?.user?._id]);
 
   // Sidebar list time format: today -> HH:MM, yesterday -> "Yesterday", else date
