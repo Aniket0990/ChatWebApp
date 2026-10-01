@@ -9,9 +9,9 @@ export const getOrCreateChat = async (userId) => {
   return data;
 };
 
-/** Full message history for a chat. */
-export const getMessages = async (chatId) => {
-  const { data } = await api.get(`/message/${chatId}`);
+/** Message history for a chat with optional pagination (limit, before). */
+export const getMessages = async (chatId, params = {}) => {
+  const { data } = await api.get(`/message/${chatId}`, { params });
   return data;
 };
 

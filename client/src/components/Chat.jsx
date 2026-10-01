@@ -168,12 +168,21 @@ export default function Chat() {
   // Messages: one cache entry per chat. Every existing `setMessages(updater)`
   // call (socket events + local actions) now writes into that cache entry.
   const messagesKey = queryKeys.messages(currentChat?._id);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
   const { data: messages = [] } = useQuery({
     queryKey: messagesKey,
-    queryFn: () => getMessages(currentChat._id),
+    queryFn: () => getMessages(currentChat._id, { limit: 50 }),
     enabled: Boolean(currentChat?._id),
     staleTime: 5 * 60_000,
   });
+
+  useEffect(() => {
+    setHasMoreMessages(true);
+    setIsLoadingMore(false);
+  }, [currentChat?._id]);
+
   const setMessages = useCallback(
     (updater) =>
       queryClient.setQueryData(messagesKey, (prev = []) =>
@@ -733,21 +742,15 @@ export default function Chat() {
     };
   }, [currentChat, user, setUser, queryClient]);
 
-  // AUTO SCROLL (Directly show latest message without scrolling animation)
+  const lastMsgId = messages[messages.length - 1]?._id;
+
+  // AUTO SCROLL TO BOTTOM (only on opening a chat or when a new message arrives at bottom)
   useLayoutEffect(() => {
     if (!highlightedId && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop =
         messagesContainerRef.current.scrollHeight;
-
-      const raf = requestAnimationFrame(() => {
-        if (messagesContainerRef.current && !highlightedId) {
-          messagesContainerRef.current.scrollTop =
-            messagesContainerRef.current.scrollHeight;
-        }
-      });
-      return () => cancelAnimationFrame(raf);
     }
-  }, [messages, currentChat, highlightedId]);
+  }, [currentChat?._id, lastMsgId, highlightedId]);
 
   // CLOSE MENUS ON OUTSIDE CLICK
   useEffect(() => {
@@ -871,7 +874,7 @@ export default function Chat() {
       );
 
       // 5. Silent background sync to get latest message statuses (seen/delivered)
-      getMessages(data._id)
+      getMessages(data._id, { limit: 50 })
         .then((freshMessages) => {
           if (Array.isArray(freshMessages)) {
             freshMessages.forEach((msg) => {
@@ -1466,13 +1469,66 @@ export default function Chat() {
     setActiveMenuId(msg._id);
   };
 
-  // DETECT SCROLL POSITION (shows immediately as user scrolls away from bottom)
-  const handleScroll = () => {
+  // DETECT SCROLL POSITION & INFINITE SCROLL (fetch older messages when scrolling to top)
+  const handleScroll = async () => {
     if (!messagesContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } =
-      messagesContainerRef.current;
+    const container = messagesContainerRef.current;
+    const { scrollTop, scrollHeight, clientHeight } = container;
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     setShowScrollBottom(distanceFromBottom > 20);
+
+    // Infinite scroll trigger: when user scrolls near top and there are older messages
+    if (
+      scrollTop <= 50 &&
+      hasMoreMessages &&
+      !isLoadingMore &&
+      messages.length >= 50 &&
+      currentChat?._id
+    ) {
+      const oldestMsg = messages[0];
+      if (oldestMsg?.createdAt) {
+        setIsLoadingMore(true);
+        const prevScrollHeight = container.scrollHeight;
+        const prevScrollTop = container.scrollTop;
+
+        try {
+          const olderMessages = await getMessages(currentChat._id, {
+            limit: 50,
+            before: oldestMsg.createdAt,
+          });
+
+          if (olderMessages && olderMessages.length > 0) {
+            setMessages((prev) => {
+              const existingIds = new Set(prev.map((m) => m._id));
+              const uniqueOlder = olderMessages.filter(
+                (m) => !existingIds.has(m._id),
+              );
+              return [...uniqueOlder, ...prev];
+            });
+
+            if (olderMessages.length < 50) {
+              setHasMoreMessages(false);
+            }
+
+            // Keep user viewport exactly where it was before prepending older messages
+            requestAnimationFrame(() => {
+              if (messagesContainerRef.current) {
+                messagesContainerRef.current.scrollTop =
+                  messagesContainerRef.current.scrollHeight -
+                  prevScrollHeight +
+                  prevScrollTop;
+              }
+            });
+          } else {
+            setHasMoreMessages(false);
+          }
+        } catch (err) {
+          console.error("Failed to load older messages", err);
+        } finally {
+          setIsLoadingMore(false);
+        }
+      }
+    }
   };
 
   // PINNED MESSAGES LIST
@@ -2136,6 +2192,15 @@ export default function Chat() {
               onScroll={handleScroll}
               className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 py-4 space-y-4 relative"
             >
+              {/* Loading indicator for previous messages */}
+              {isLoadingMore && (
+                <div className="flex justify-center py-2 sticky top-0 z-10 pointer-events-none">
+                  <div className="flex items-center gap-2 bg-white/95 dark:bg-[#182229]/95 backdrop-blur-xs px-3 py-1 rounded-full shadow-xs border border-orange-200 dark:border-orange-900/40 text-xs text-[#FF8624]">
+                    <div className="w-3.5 h-3.5 border-2 border-[#FF8624] border-t-transparent rounded-full animate-spin" />
+                    <span className="font-medium">Loading messages...</span>
+                  </div>
+                </div>
+              )}
               {Object.keys(groupedMessages).length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 text-sm">
                   <div className="w-16 h-16 rounded-full bg-orange-50 dark:bg-orange-950/40 text-[#FF8624] flex items-center justify-center text-2xl mb-3 shadow-sm">

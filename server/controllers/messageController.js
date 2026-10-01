@@ -36,13 +36,26 @@ exports.sendMessage = async (req, res) => {
 
 exports.getMessages = async (req, res) => {
   try {
-    const messages = await populateMessage(
-      Message.find({
-        chat: req.params.chatId,
-        deletedFor: { $ne: req.user.id },
-      }),
-    );
+    const { limit, before } = req.query;
+    const filter = {
+      chat: req.params.chatId,
+      deletedFor: { $ne: req.user.id },
+    };
 
+    if (before) {
+      filter.createdAt = { $lt: new Date(before) };
+    }
+
+    let query = Message.find(filter);
+
+    if (limit) {
+      const parsedLimit = parseInt(limit, 10) || 50;
+      query = query.sort({ createdAt: -1 }).limit(parsedLimit);
+      const messages = await populateMessage(query);
+      return res.json(messages.reverse());
+    }
+
+    const messages = await populateMessage(query.sort({ createdAt: 1 }));
     res.json(messages);
   } catch (error) {
     console.error("Error getting messages:", error);
@@ -118,16 +131,29 @@ exports.deleteMessage = async (req, res) => {
       message.content = "This message was deleted";
       message.fileUrl = null;
       await message.save();
+
+      const updated = await populateMessage(Message.findById(messageId));
+      return res.json({ message: "Message deleted successfully", data: updated, mode });
     } else {
       // mode === "me"
       if (!message.deletedFor.includes(req.user.id)) {
         message.deletedFor.push(req.user.id);
-        await message.save();
       }
-    }
 
-    const updated = await populateMessage(Message.findById(messageId));
-    res.json({ message: "Message deleted successfully", data: updated, mode });
+      // Smart Hard-Delete: in a 1-on-1 chat (2 users), if both users have deleted this message, permanently remove from DB
+      if (message.deletedFor.length >= 2) {
+        await Message.deleteOne({ _id: messageId });
+        return res.json({
+          message: "Message permanently deleted from DB",
+          data: { _id: messageId, isDeleted: true },
+          mode,
+        });
+      }
+
+      await message.save();
+      const updated = await populateMessage(Message.findById(messageId));
+      return res.json({ message: "Message deleted successfully", data: updated, mode });
+    }
   } catch (error) {
     console.error("Error deleting message:", error);
     res.status(500).json({ error: "Failed to delete message" });
@@ -156,11 +182,21 @@ exports.togglePinMessage = async (req, res) => {
 };
 
 // Clear entire chat for the current user only
-// (adds the user to deletedFor on every message so getMessages hides them)
+// Smart Batch Delete:
+// 1. Permanently delete messages that the other user already deleted/cleared
+// 2. Add current user to deletedFor for remaining messages
 exports.clearChat = async (req, res) => {
   try {
     const { chatId } = req.params;
 
+    // 1. Permanently remove messages where another user is already in deletedFor
+    await Message.deleteMany({
+      chat: chatId,
+      "deletedFor.0": { $exists: true },
+      deletedFor: { $ne: req.user.id },
+    });
+
+    // 2. For remaining messages, add this user to deletedFor
     await Message.updateMany(
       { chat: chatId, deletedFor: { $ne: req.user.id } },
       { $addToSet: { deletedFor: req.user.id } },
