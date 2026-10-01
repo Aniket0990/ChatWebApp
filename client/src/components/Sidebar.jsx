@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useReceivedRequests } from "../hooks/useConnections";
 import { getOrCreateChat, clearChatMessages } from "../hooks/useChat";
 import { queryKeys } from "../lib/queryClient";
+import { socket } from "../socket/socket";
 
 export default function Sidebar({
   users = [],
@@ -86,6 +87,38 @@ export default function Sidebar({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedSidebarUser]);
 
+  // CROSS-DEVICE SYNC: receive pin/hide state from another session of the same account
+  useEffect(() => {
+    const handlePinSync = ({ pinnedIds }) => {
+      if (!Array.isArray(pinnedIds)) return;
+      setPinnedUserIds(pinnedIds);
+      try {
+        localStorage.setItem(
+          `connecto_pinned_${user?.user?._id}`,
+          JSON.stringify(pinnedIds),
+        );
+      } catch {}
+    };
+
+    const handleHideSync = ({ hiddenIds }) => {
+      if (!Array.isArray(hiddenIds)) return;
+      setHiddenUserIds(hiddenIds);
+      try {
+        localStorage.setItem(
+          `connecto_hidden_${user?.user?._id}`,
+          JSON.stringify(hiddenIds),
+        );
+      } catch {}
+    };
+
+    socket.on("sidebar_pin_sync", handlePinSync);
+    socket.on("sidebar_hide_sync", handleHideSync);
+    return () => {
+      socket.off("sidebar_pin_sync", handlePinSync);
+      socket.off("sidebar_hide_sync", handleHideSync);
+    };
+  }, [user?.user?._id]);
+
   // Sidebar list time format: today -> HH:MM, yesterday -> "Yesterday", else date
   const formatListTime = (dateString) => {
     if (!dateString) return "";
@@ -122,6 +155,9 @@ export default function Sidebar({
       console.error("Failed to save pinned users", e);
     }
 
+    // Broadcast pin change to other devices of the same account
+    socket.emit("sidebar_pin_sync", { pinnedIds: updated });
+
     setSelectedSidebarUser(null);
     toast.success(isPinned ? "Chat unpinned" : "Chat pinned to top");
   };
@@ -154,6 +190,9 @@ export default function Sidebar({
         console.error("Failed to save hidden users", e);
       }
 
+      // Broadcast hide change to other devices of the same account
+      socket.emit("sidebar_hide_sync", { hiddenIds: updatedHidden });
+
       // 3. Remove from pinned if it was pinned
       if (pinnedUserIds.includes(selectedSidebarUser._id)) {
         const updatedPinned = pinnedUserIds.filter(
@@ -168,6 +207,8 @@ export default function Sidebar({
         } catch (e) {
           console.error("Failed to save pinned users", e);
         }
+        // Broadcast pin change too
+        socket.emit("sidebar_pin_sync", { pinnedIds: updatedPinned });
       }
 
       // 4. Update sidebar preview in React Query users cache
@@ -256,6 +297,8 @@ export default function Sidebar({
       } catch (e) {
         console.error("Failed to update hidden users", e);
       }
+      // Broadcast unhide to other devices
+      socket.emit("sidebar_hide_sync", { hiddenIds: updated });
     }
 
     setUserSearchQuery("");

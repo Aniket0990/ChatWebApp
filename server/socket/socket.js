@@ -144,6 +144,19 @@ module.exports = (io) => {
       io.emit("user_profile_updated", updatedUser);
     });
 
+    // SIDEBAR SYNC — pin & hide state broadcast to same user's other devices
+    socket.on("sidebar_pin_sync", ({ pinnedIds }) => {
+      if (socket.userId && Array.isArray(pinnedIds)) {
+        socket.to(socket.userId).emit("sidebar_pin_sync", { pinnedIds });
+      }
+    });
+
+    socket.on("sidebar_hide_sync", ({ hiddenIds }) => {
+      if (socket.userId && Array.isArray(hiddenIds)) {
+        socket.to(socket.userId).emit("sidebar_hide_sync", { hiddenIds });
+      }
+    });
+
     // DISCONNECT
     socket.on("disconnect", async () => {
       if (socket.userId) {
