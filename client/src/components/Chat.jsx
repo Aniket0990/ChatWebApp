@@ -1777,6 +1777,7 @@ export default function Chat() {
         setDarkMode={setDarkMode}
         mobileShowChat={mobileShowChat}
         onConnectionAccepted={fetchUsers}
+        onCloseActiveChat={handleCloseChat}
       />
 
       {/* CHAT MAIN CONTAINER */}
@@ -3209,15 +3210,15 @@ export default function Chat() {
               ) : (
                 /* WhatsApp Unified Input Pill / Card */
                 <div
-                  className={`transition-all shadow-[0_2px_12px_rgba(0,0,0,0.04)] ${
+                  className={`shadow-[0_2px_12px_rgba(0,0,0,0.04)] overflow-hidden transition-colors duration-200 flex flex-col ${
                     replyingTo || editingMessage
-                      ? "rounded-2xl sm:rounded-[22px] flex flex-col"
-                      : "rounded-full flex items-center gap-1 sm:gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2"
+                      ? "rounded-2xl sm:rounded-[22px]"
+                      : "rounded-full"
                   } ${darkMode ? "bg-[#202c33] text-[#e9edef]" : "bg-white text-gray-800"}`}
                 >
                   {/* Reply / Edit Preview (Integrated inside the input card, WhatsApp Web style) */}
                   {(replyingTo || editingMessage) && (
-                    <div className="pt-2.5 px-3.5 sm:px-4 pb-1 flex items-start justify-between gap-3 animate-fadeIn border-b border-[#F0EAE0] dark:border-white/5">
+                    <div className="pt-2.5 px-3.5 sm:px-4 pb-1.5 flex items-start justify-between gap-3 border-b border-[#F0EAE0] dark:border-white/5">
                       <div className="flex items-start gap-2.5 flex-1 min-w-0">
                         {/* Orange brand vertical bar */}
                         <span
@@ -3271,10 +3272,10 @@ export default function Chat() {
 
                   {/* Input Row */}
                   <div
-                    className={`flex items-center gap-1 sm:gap-2 ${
+                    className={`flex items-center gap-1 sm:gap-2 px-3.5 sm:px-4 ${
                       replyingTo || editingMessage
-                        ? "px-3 sm:px-4 pb-1.5 sm:pb-2 pt-0.5"
-                        : "w-full"
+                        ? "pb-1.5 sm:pb-2 pt-1"
+                        : "py-1.5 sm:py-2"
                     }`}
                   >
                     {/* File Attachment Button (left, WhatsApp style) */}
