@@ -11,7 +11,6 @@ import axios from "../utils/axios";
 import { prepareFileForUpload } from "../utils/compressFile";
 import { socket } from "../socket/socket";
 import { AuthContext } from "../context/AuthContext";
-import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUsers } from "../hooks/useUsers";
@@ -918,7 +917,7 @@ export default function Chat() {
         })
         .catch(() => {});
     } catch (err) {
-      toast.error("Failed to load chat");
+      console.error("Failed to load chat", err);
     }
   };
 
@@ -1013,7 +1012,7 @@ export default function Chat() {
         setMessage("");
         setReplyingTo(null);
       } catch {
-        toast.error("Failed to send message");
+        console.error("Failed to send message", err);
       }
       return;
     }
@@ -1040,19 +1039,19 @@ export default function Chat() {
 
       // 2. File messages (one per file, with no text)
       if (filesToSend.length > 0) {
-        if (filesToSend.length > 1) toast.info(`Uploading ${filesToSend.length} files...`);
+        if (filesToSend.length > 1) console.info(`Uploading ${filesToSend.length} files...`);
         for (const entry of filesToSend) {
           try {
             const url = await uploadFileApi(entry.file);
             await dispatchMessage("", url, null);
           } catch {
-            toast.error(`Failed to send: ${entry.file.name}`);
+            console.error(`Failed to send: ${entry.file.name}`);
           }
         }
-        if (filesToSend.length > 1) toast.success("Files sent!");
+        if (filesToSend.length > 1) console.info("Files sent!");
       }
     } catch (err) {
-      toast.error("Failed to send message");
+      console.error("Failed to send message", err);
     }
   };
 
@@ -1118,13 +1117,13 @@ export default function Chat() {
 
     const remaining = 10 - pendingFiles.length;
     if (remaining <= 0) {
-      toast.warn("Maximum 10 files allowed at once");
+      console.warn("Maximum 10 files allowed at once");
       return;
     }
 
     const candidates = incoming.slice(0, remaining);
     if (incoming.length > remaining) {
-      toast.warn(`Only ${remaining} more file${remaining > 1 ? "s" : ""} can be added (max 10)`);
+      console.warn(`Only ${remaining} more file${remaining > 1 ? "s" : ""} can be added (max 10)`);
     }
 
     const results = await Promise.all(
@@ -1158,13 +1157,13 @@ export default function Chat() {
     });
 
     if (compressedCount > 0) {
-      toast.info(
+      console.info(
         `${compressedCount} file${compressedCount > 1 ? "s" : ""} compressed to fit the 2 MB limit`,
       );
     }
 
     if (rejected.length > 0) {
-      toast.error(
+      console.error(
         rejected.length === 1
           ? `"${rejected[0]}" is over 2 MB and can't be compressed`
           : `${rejected.length} files are over 2 MB and can't be compressed`,
@@ -1303,14 +1302,13 @@ export default function Chat() {
 
       setMessages((prev) => prev.map((m) => updatedById.get(m._id) || m));
       updated.forEach((m) => socket.emit("message pinned", m));
-      toast.success(
+      console.info(
         toToggle.length === 1
           ? "Message toggled"
           : `${toToggle.length} messages toggled`,
       );
     } catch (err) {
       console.error("Failed to toggle messages", err);
-      toast.error("Failed to toggle messages");
     } finally {
       setIsBulkActionLoading(false);
       exitSelectMode();
@@ -1326,7 +1324,7 @@ export default function Chat() {
     // (because you can't bulk-delete them), but when every selected message is deleted
     // (i.e. the user selected only deleted messages) fall back to a no-op exit.
     if (!canDeleteForEveryone && blockingIds.size !== targets.length) {
-      toast.info("Can't delete for everyone if any selected message is deleted");
+      console.info("Can't delete for everyone if any selected message is deleted");
       exitSelectMode();
       return;
     }
@@ -1367,14 +1365,13 @@ export default function Chat() {
         });
       }
 
-      toast.success(
+      console.info(
         targets.length === 1
           ? "Message deleted"
           : `${targets.length} messages deleted`,
       );
     } catch (err) {
       console.error("Failed to delete messages", err);
-      toast.error("Failed to delete messages");
     } finally {
       setIsBulkActionLoading(false);
       exitSelectMode();
@@ -1407,7 +1404,7 @@ export default function Chat() {
       );
       socket.emit("message reacted", data);
     } catch (err) {
-      toast.error("Failed to add reaction");
+      console.error("Failed to add reaction");
     }
   };
 
@@ -1555,9 +1552,9 @@ export default function Chat() {
           ),
         );
       }
-      toast.success("Chat cleared");
+      console.info("Chat cleared");
     } catch (err) {
-      toast.error("Failed to clear chat");
+      console.error("Failed to clear chat", err);
     }
   };
 
@@ -1696,7 +1693,6 @@ export default function Chat() {
       URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error("Download failed", err);
-      toast.error("Download failed");
     }
   };
 
@@ -2301,8 +2297,8 @@ export default function Chat() {
                             <div
                               className={`relative transition-all shadow-sm border max-w-full ${
                                 m.fileUrl && !m.content && !m.replyTo
-                                  ? "p-2 sm:p-2.5 rounded-2xl"
-                                  : "px-4 py-2.5 rounded-2xl"
+                                  ? "p-2 sm:p-2 sm:pb-1 rounded-2xl"
+                                  : "px-4 py-2 pb-0.5 rounded-2xl"
                               } ${
                                 isSelf
                                   ? darkMode
@@ -2687,7 +2683,7 @@ export default function Chat() {
 
                               {/* Bottom Row: Reaction button & emoji chips + timestamp & ticks */}
                               <div
-                                className={`flex items-center justify-between gap-4 mt-2 pt-1 border-t ${
+                                className={`flex items-center justify-between gap-4 pt-0.5 border-t ${
                                   isSelf
                                     ? darkMode
                                       ? "border-orange-500/20"
@@ -2745,7 +2741,7 @@ export default function Chat() {
                                             onClick={() =>
                                               handleReaction(m, emoji)
                                             }
-                                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border transition cursor-pointer ${
+                                            className={`flex items-center gap-0.5 px-2 rounded-full text-[11px] font-semibold border transition cursor-pointer ${
                                               userReacted
                                                 ? darkMode
                                                   ? "bg-orange-950/60 border-orange-500/50 text-orange-300"
