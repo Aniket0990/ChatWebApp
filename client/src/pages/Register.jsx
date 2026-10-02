@@ -77,7 +77,7 @@ export default function Register() {
     <AuthLayout
     >
       <SEO
-        title="Register — Connecto | Fast & Secure Real-Time Web Chat App"
+        title="Register - Connecto | Fast & Secure Real-Time Web Chat App"
         description="Create your free Connecto account. Connect with friends, send connection requests, and start instant messaging in real time."
         canonical="/register"
       />

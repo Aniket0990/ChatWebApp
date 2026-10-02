@@ -778,7 +778,7 @@ export default function Landing() {
   return (
     <div className="landing-canvas min-h-screen overflow-x-clip font-sans text-ink">
       <SEO
-        title="Connecto — Connect. Chat. Stay Connected."
+        title="Connecto - Connect. Chat. Stay Connected."
         description="Connecto makes it simple to connect with people, have private conversations, and bring everyone together in group chats — all in one place."
         keywords="connecto, realtime chat app, group chat, private messaging, connect with people, instant messaging web app"
         canonical="/"

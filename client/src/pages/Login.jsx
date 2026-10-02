@@ -70,7 +70,7 @@ export default function Login() {
     <AuthLayout
     >
       <SEO
-        title="Login — Connecto | Fast & Secure Real-Time Web Chat App"
+        title="Login - Connecto | Fast & Secure Real-Time Web Chat App"
         description="Sign in to Connecto to access your real-time chats, messages, and friend connections. Blazing fast instant messaging."
         canonical="/login"
       />

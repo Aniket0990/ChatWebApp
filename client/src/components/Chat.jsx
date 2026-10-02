@@ -745,12 +745,13 @@ export default function Chat() {
   const lastMsgId = messages[messages.length - 1]?._id;
 
   // AUTO SCROLL TO BOTTOM (only on opening a chat or when a new message arrives at bottom)
+  // Skip auto-scroll while actively navigating search results so next/prev clicks stay put.
   useLayoutEffect(() => {
     if (!highlightedId && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop =
         messagesContainerRef.current.scrollHeight;
     }
-  }, [currentChat?._id, lastMsgId, highlightedId]);
+  }, [currentChat?._id, lastMsgId]);
 
   // CLOSE MENUS ON OUTSIDE CLICK
   useEffect(() => {
@@ -1714,7 +1715,7 @@ export default function Chat() {
       setSearchMatchIndex(0);
       scrollToMessage(matchingMessages[0]._id);
     }
-  }, [searchQuery, isSearching]);
+  }, [isSearching]);
 
   const handleNextMatch = (delta) => {
     if (matchingMessages.length === 0) return;
