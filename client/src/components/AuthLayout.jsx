@@ -20,50 +20,6 @@ const HIGHLIGHTS = [
   },
 ];
 
-/** Faint orange curves referencing the signal-wave logo. */
-function BackgroundCurves() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute -left-32 -top-24 h-[420px] w-[420px] rounded-full bg-brand/10 blur-[110px]" />
-      <div className="absolute -bottom-40 -right-24 h-[520px] w-[520px] rounded-full bg-brand/10 blur-[130px]" />
-      <svg
-        className="absolute inset-0 h-full w-full"
-        viewBox="0 0 1200 800"
-        preserveAspectRatio="none"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M-40 120C160 40 340 260 620 190 900 120 1050 250 1250 170"
-          stroke="#FF7A1A"
-          strokeOpacity="0.14"
-          strokeWidth="2"
-        />
-        <path
-          d="M-40 660C220 560 420 760 700 660 940 574 1080 700 1250 640"
-          stroke="#FF7A1A"
-          strokeOpacity="0.12"
-          strokeWidth="2"
-        />
-        <path
-          d="M1100 -40C1010 180 1210 330 1120 500 1050 636 1180 720 1120 840"
-          stroke="#FF7A1A"
-          strokeOpacity="0.1"
-          strokeWidth="2"
-        />
-        <ellipse
-          cx="150"
-          cy="760"
-          rx="300"
-          ry="150"
-          stroke="#FF7A1A"
-          strokeOpacity="0.08"
-        />
-      </svg>
-    </div>
-  );
-}
-
 function BrandPanel() {
   return (
     <section className="hidden lg:block">
@@ -137,13 +93,11 @@ function BrandPanel() {
 
 /**
  * Shared shell for the Login and Register pages:
- * warm cream canvas, brand story on the left, white form card on the right.
+ * uses auth page.png background, brand story on the left, white form card on the right.
  */
 export default function AuthLayout({ topRight, children }) {
   return (
-    <main className="connecto-canvas relative min-h-screen overflow-hidden font-sans text-ink">
-      <BackgroundCurves />
-
+    <main className="auth-canvas relative min-h-screen overflow-hidden font-sans text-ink">
       <Link
         to="/"
         aria-label="Back to home"
