@@ -1,25 +1,40 @@
 const nodemailer = require("nodemailer");
 
-exports.sendEmail = async (to, subject, text) => {
-  try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
+let transporter;
+
+const getTransporter = () => {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true, // Use SSL on port 465 for fast cloud delivery on Render/AWS
       auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS,
       },
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
     });
+  }
+  return transporter;
+};
+
+exports.sendEmail = async (to, subject, text) => {
+  try {
+    const mailTransporter = getTransporter();
 
     const mailOptions = {
-      from: process.env.MAIL_USER,
+      from: `"Connecto" <${process.env.MAIL_USER}>`,
       to: to,
       subject: subject,
       text: text,
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully!");
+    await mailTransporter.sendMail(mailOptions);
+    console.log(`[Nodemailer] Email sent successfully to: ${to}`);
   } catch (error) {
-    console.error("Email could not be sent:", error);
+    console.error("[Nodemailer] Error sending email:", error);
+    throw error;
   }
 };
