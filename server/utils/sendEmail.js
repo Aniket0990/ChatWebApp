@@ -20,17 +20,14 @@ exports.sendEmail = async (to, subject, text) => {
   }
 
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
+    service: "gmail",
     auth: {
       user: mailUser,
       pass: mailPass,
     },
-    family: 4, // Force IPv4 to prevent ENETUNREACH on Render
-    connectionTimeout: 15000, // 15s timeout prevents 1-minute hangs
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
+    tls: {
+      rejectUnauthorized: false,
+    },
   });
 
   const mailOptions = {
