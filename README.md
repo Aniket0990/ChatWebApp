@@ -13,6 +13,8 @@
 
 **Connecto** is a connection-first social networking and real-time communication platform built on the **MERN** stack with **Socket.IO**. Going beyond basic instant messaging, Connecto seamlessly integrates a social connection engine that allows users to discover peers, build and manage meaningful networks through connection requests, and interact in high-speed, private, and group conversations with rich media and document sharing.
 
+🌐 **Live Demo:** [https://connectnchat.vercel.app/](https://connectnchat.vercel.app/)
+
 [Features](#-key-features) • [Tech Stack](#-tech-stack) • [Deployment](#-deployment)
 
 </div>
