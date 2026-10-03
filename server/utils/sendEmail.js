@@ -1,4 +1,10 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns");
+
+// Render and cloud servers do not have IPv6 routing enabled; force IPv4 DNS resolution
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 exports.sendEmail = async (to, subject, text) => {
   const mailUser = process.env.MAIL_USER ? process.env.MAIL_USER.trim() : "";
@@ -14,11 +20,14 @@ exports.sendEmail = async (to, subject, text) => {
   }
 
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
       user: mailUser,
       pass: mailPass,
     },
+    family: 4, // Force IPv4 to prevent ENETUNREACH on Render
     connectionTimeout: 15000, // 15s timeout prevents 1-minute hangs
     greetingTimeout: 15000,
     socketTimeout: 20000,
