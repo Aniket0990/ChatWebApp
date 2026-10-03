@@ -10,6 +10,7 @@ import SEO from "../components/SEO";
 import AuthLayout from "../components/AuthLayout";
 import AuthField from "../components/AuthField";
 import ConnectoLogo from "../components/ConnectoLogo";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -19,6 +20,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [fieldError, setFieldError] = useState("");
   const [formError, setFormError] = useState("");
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const { setUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -133,6 +135,16 @@ export default function Login() {
               </button>
             }
           />
+          
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setIsForgotModalOpen(true)}
+              className="text-sm font-medium text-brand hover:underline"
+            >
+              Forgot password?
+            </button>
+          </div>
 
           {formError && (
             <p
@@ -159,6 +171,11 @@ export default function Login() {
           </Link>
         </p>
       </div>
+
+      <ForgotPasswordModal 
+        isOpen={isForgotModalOpen} 
+        onClose={() => setIsForgotModalOpen(false)} 
+      />
     </AuthLayout>
   );
 }

@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const Message = require("../models/Message");
 const Chat = require("../models/Chat");
 const Connection = require("../models/Connection");
+const { sendEmail } = require("../utils/sendEmail");
 
 exports.register = async (req, res) => {
   try {
@@ -50,6 +51,61 @@ exports.login = async (req, res) => {
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Login failed: " + error.message });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found with this email" });
+
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    user.resetPasswordOtp = otp;
+    user.resetPasswordExpires = Date.now() + 2 * 60 * 1000; // 2 mins
+    await user.save();
+
+    await sendEmail(
+      user.email,
+      "Password Reset Code - Connecto",
+      `Dear User,\n\n  Your verification code is ${otp}. This code is valid for the next 2 minutes. Please keep it confidential and do not share it with anyone.\n\nThank you for choosing Connecto.\n\n\n\n\n\n\nBest regards,\nTeam Connecto`
+    );
+
+    res.json({ message: "Verification code sent to your email" });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: "Failed to send reset code" });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const user = await User.findOne({
+      email,
+      resetPasswordOtp: otp,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired reset code" });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordOtp = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({ message: "Failed to reset password" });
   }
 };
 
@@ -206,5 +262,75 @@ exports.changePassword = async (req, res) => {
   } catch (error) {
     console.error("Change password error:", error);
     res.status(500).json({ message: "Failed to change password" });
+  }
+};
+
+// requestEmailChange
+exports.requestEmailChange = async (req, res) => {
+  try {
+    const { newEmail } = req.body;
+    if (!newEmail) {
+      return res.status(400).json({ message: "New email is required" });
+    }
+
+    const existingUser = await User.findOne({ email: newEmail });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email is already in use by another user" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    user.changeEmailOtp = otp;
+    user.changeEmailExpires = Date.now() + 2 * 60 * 1000; // 2 mins
+    user.pendingEmail = newEmail;
+    await user.save();
+
+    await sendEmail(
+      newEmail,
+      "Email Change Verification Code - Connecto",
+      `Dear User,\n\n  Your verification code is ${otp}. This code is valid for the next 2 minutes. Please keep it confidential and do not share it with anyone.\n\nThank you for choosing Connecto.\n\n\n\n\n\n\nBest regards,\nTeam Connecto`
+    );
+
+    res.json({ message: "Verification code sent to your new email" });
+  } catch (error) {
+    console.error("Request email change error:", error);
+    res.status(500).json({ message: "Failed to send verification code" });
+  }
+};
+
+// verifyEmailChange
+exports.verifyEmailChange = async (req, res) => {
+  try {
+    const { otp } = req.body;
+    if (!otp) {
+      return res.status(400).json({ message: "Verification code is required" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.changeEmailOtp || user.changeEmailOtp !== otp || user.changeEmailExpires < Date.now()) {
+      return res.status(400).json({ message: "Invalid or expired verification code" });
+    }
+
+    user.email = user.pendingEmail;
+    user.changeEmailOtp = undefined;
+    user.changeEmailExpires = undefined;
+    user.pendingEmail = undefined;
+    await user.save();
+
+    // Reissue token with the new email or just let the client keep the same id-based token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+
+    res.json({ message: "Email changed successfully", user, token });
+  } catch (error) {
+    console.error("Verify email change error:", error);
+    res.status(500).json({ message: "Failed to change email" });
   }
 };

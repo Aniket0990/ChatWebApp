@@ -1,15 +1,16 @@
-import { useContext, useState, useRef } from "react";
+import { useContext, useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { socket } from "../socket/socket";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import {
-  changePassword,
   updateProfile,
   uploadFile,
   useChangePassword,
   useUpdateProfile,
+  useRequestEmailChange,
+  useVerifyEmailChange,
 } from "../hooks/useAuthMutations";
 import Avatar from "./Avatar";
 import {
@@ -21,6 +22,9 @@ import {
   FiX,
   FiLock,
   FiLogOut,
+  FiMail,
+  FiCheckCircle,
+  FiInfo,
 } from "react-icons/fi";
 import { IoMoon, IoSunny } from "react-icons/io5";
 
@@ -46,6 +50,25 @@ export default function Profile({
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
 
+  // Change Email Modal states
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailStep, setEmailStep] = useState(1);
+  const [newEmailInput, setNewEmailInput] = useState("");
+  const [emailOtpInput, setEmailOtpInput] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [emailSuccess, setEmailSuccess] = useState("");
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
   // Logout Confirmation Modal state
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -61,6 +84,8 @@ export default function Profile({
   });
   const saveProfile = useUpdateProfile();
   const savePassword = useChangePassword();
+  const requestEmailChange = useRequestEmailChange();
+  const verifyEmailChange = useVerifyEmailChange();
   const uploadingPhoto = uploadProfileImage.isPending;
 
   if (!user) return null;
@@ -156,6 +181,93 @@ export default function Profile({
         err.response?.data?.message || "Failed to change password",
       );
     }
+  };
+
+  const handleEmailRequestSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setEmailError("");
+    setEmailSuccess("");
+
+    const trimmedEmail = newEmailInput.trim();
+    if (!trimmedEmail) {
+      setEmailError("New email address is required");
+      return;
+    }
+
+    if (trimmedEmail.toLowerCase() === user.user.email?.toLowerCase()) {
+      setEmailError("New email must be different from current email");
+      return;
+    }
+    
+    // Strict BVA Email Validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    try {
+      await requestEmailChange.mutateAsync({ newEmail: trimmedEmail });
+      setEmailSuccess("Verification code sent to your new email");
+      setTimer(60);
+      setEmailStep(2);
+      setEmailSuccess("");
+    } catch (err) {
+      setEmailError(err.response?.data?.message || "Failed to send verification code");
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (timer > 0 || requestEmailChange.isPending) return;
+    setEmailError("");
+    setEmailSuccess("");
+    try {
+      await requestEmailChange.mutateAsync({ newEmail: newEmailInput.trim() });
+      setTimer(60);
+      toast.success("New verification code sent!");
+    } catch (err) {
+      setEmailError(err.response?.data?.message || "Failed to resend code");
+    }
+  };
+
+  const handleEmailVerifySubmit = async (e) => {
+    e.preventDefault();
+    setEmailError("");
+    setEmailSuccess("");
+
+    const trimmedOtp = emailOtpInput.trim();
+    if (!trimmedOtp) {
+      setEmailError("Verification code is required");
+      return;
+    }
+
+    // Strict BVA Validation for 4-digit numeric OTP
+    if (!/^\d{4}$/.test(trimmedOtp)) {
+      setEmailError("Verification code must be exactly 4 digits");
+      return;
+    }
+
+    try {
+      const data = await verifyEmailChange.mutateAsync({ otp: trimmedOtp });
+      
+      const updatedUser = { ...user, user: data.user, token: data.token };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      
+      setEmailStep(3);
+    } catch (err) {
+      setEmailError(err.response?.data?.message || "Invalid or expired verification code");
+    }
+  };
+
+  const handleCloseEmailModal = () => {
+    setShowEmailModal(false);
+    setNewEmailInput("");
+    setEmailOtpInput("");
+    setEmailStep(1);
+    setEmailError("");
+    setEmailSuccess("");
+    setTimer(0);
   };
 
   const handleConfirmLogout = () => {
@@ -425,13 +537,34 @@ export default function Profile({
               >
                 Email
               </span>
-              <p
-                className={`text-sm font-medium ${
-                  darkMode ? "text-[#e9edef]" : "text-gray-700"
-                }`}
-              >
-                {user.user.email}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p
+                  className={`text-sm font-medium ${
+                    darkMode ? "text-[#e9edef]" : "text-gray-700"
+                  }`}
+                >
+                  {user.user.email}
+                </p>
+                <button
+                  onClick={() => {
+                    setNewEmailInput("");
+                    setEmailOtpInput("");
+                    setEmailStep(1);
+                    setEmailError("");
+                    setEmailSuccess("");
+                    setTimer(0);
+                    setShowEmailModal(true);
+                  }}
+                  className={`p-1.5 rounded-full transition shrink-0 cursor-pointer ${
+                    darkMode
+                      ? "text-gray-400 hover:text-[#FF8624] hover:bg-[#202c33]"
+                      : "text-gray-400 hover:text-[#FF8624] hover:bg-gray-50"
+                  }`}
+                  title="Edit email"
+                >
+                  <FiEdit2 className="text-sm" />
+                </button>
+              </div>
             </div>
 
             {/* Action Buttons: Dark Theme Toggle, Change Password, Logout */}
@@ -663,6 +796,359 @@ export default function Profile({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CHANGE EMAIL POPUP MODAL (3-STEP FLOW) */}
+      {showEmailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-fadeIn">
+          <div
+            className={`rounded-2xl shadow-2xl border w-full max-w-md p-6 space-y-4 transition-colors ${
+              darkMode
+                ? "bg-[#202c33] border-[#2a3942] text-[#e9edef]"
+                : "bg-white border-gray-100 text-gray-800"
+            }`}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between">
+              <div>
+                <h3
+                  className={`font-bold text-lg leading-snug ${
+                    darkMode ? "text-gray-100" : "text-gray-900"
+                  }`}
+                >
+                  {emailStep === 3
+                    ? ""
+                    : emailStep === 2
+                    ? "Verify Email Address"
+                    : "Change Email Address"}
+                </h3>
+                <p
+                  className={`text-xs mt-0.5 ${
+                    darkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  {emailStep === 3
+                    ? ""
+                    : emailStep === 2
+                    ? "Enter the verification code sent to your email."
+                    : "Update your email address securely."}
+                </p>
+              </div>
+              <button
+                onClick={handleCloseEmailModal}
+                className={`p-1.5 rounded-full transition cursor-pointer ${
+                  darkMode
+                    ? "hover:bg-[#2a3942] text-gray-400 hover:text-gray-200"
+                    : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                <FiX className="text-lg" />
+              </button>
+            </div>
+
+            {/* Error & Success Alerts */}
+            {emailError && (
+              <div
+                className={`p-3 text-xs rounded-xl border ${
+                  darkMode
+                    ? "text-red-400 bg-red-950/40 border-red-900/40"
+                    : "text-red-600 bg-red-50 border-red-200"
+                }`}
+              >
+                {emailError}
+              </div>
+            )}
+            {emailSuccess && (
+              <div
+                className={`p-3 text-xs rounded-xl border ${
+                  darkMode
+                    ? "text-[#FF8624] bg-[#FF8624]/10 border-[#FF8624]/20"
+                    : "text-[#FF8624] bg-[#fff4e6] border-[#FF8624]/30"
+                }`}
+              >
+                {emailSuccess}
+              </div>
+            )}
+
+            {/* STEP 1: Enter New Email */}
+            {emailStep === 1 && (
+              <form onSubmit={handleEmailRequestSubmit} className="space-y-4">
+                {/* Current Email Field */}
+                <div>
+                  <label
+                    className={`text-xs font-semibold block mb-1.5 ${
+                      darkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Current Email
+                  </label>
+                  <div
+                    className={`w-full px-3.5 py-2.5 rounded-xl border flex items-center justify-between transition-colors ${
+                      darkMode
+                        ? "bg-[#111b21] border-[#2a3942]"
+                        : "bg-[#f8fafc] border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <FiMail className="text-gray-400 text-base shrink-0" />
+                      <span
+                        className={`text-sm font-medium truncate ${
+                          darkMode ? "text-gray-200" : "text-gray-800"
+                        }`}
+                      >
+                        {user.user.email}
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 shrink-0">
+                      <FiCheckCircle className="text-emerald-500 text-xs" /> Verified
+                    </span>
+                  </div>
+                </div>
+
+                {/* New Email Address Field */}
+                <div>
+                  <label
+                    className={`text-xs font-semibold block mb-1.5 ${
+                      darkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    New Email Address
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={newEmailInput}
+                    onChange={(e) => setNewEmailInput(e.target.value)}
+                    className={`w-full px-3.5 py-2.5 text-sm rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#FF8624]/20 focus:border-[#FF8624] transition ${
+                      darkMode
+                        ? "border-[#2a3942] bg-[#111b21] text-white placeholder-gray-500"
+                        : "border-gray-300 bg-white text-gray-900 placeholder-gray-400"
+                    }`}
+                    placeholder="Enter new email address"
+                  />
+                </div>
+
+                {/* Information Alert Banner */}
+                <div
+                  className={`border rounded-xl p-3.5 flex items-center gap-2.5 ${
+                    darkMode
+                      ? "bg-blue-950/30 border-blue-900/40"
+                      : "bg-[#eff6ff] border-[#dbeafe]"
+                  }`}
+                >
+                  <FiInfo className="text-[#3b82f6] text-base shrink-0" />
+                  <p
+                    className={`text-xs leading-relaxed font-medium ${
+                      darkMode ? "text-blue-300" : "text-[#2563eb]"
+                    }`}
+                  >
+                    We will send a verification code to your new email address.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleCloseEmailModal}
+                    className={`w-1/2 py-2.5 text-xs font-semibold rounded-xl transition cursor-pointer border ${
+                      darkMode
+                        ? "border-[#2a3942] bg-[#111b21] text-gray-300 hover:bg-[#202c33]"
+                        : "border-gray-200 bg-[#f8fafc] text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={requestEmailChange.isPending}
+                    className="w-1/2 py-2.5 text-xs font-semibold bg-[#FF8624] hover:bg-[#ea7313] text-white rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {requestEmailChange.isPending ? "Sending OTP..." : "Send OTP"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* STEP 2: Verify OTP */}
+            {emailStep === 2 && (
+              <form onSubmit={handleEmailVerifySubmit} className="space-y-4">
+                {/* Sent To Target Email */}
+                <div>
+                  <label
+                    className={`text-xs font-semibold block mb-1.5 ${
+                      darkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Verification Code Sent To
+                  </label>
+                  <div
+                    className={`w-full px-3.5 py-2.5 rounded-xl border flex items-center justify-between transition-colors ${
+                      darkMode
+                        ? "bg-[#111b21] border-[#2a3942]"
+                        : "bg-[#f8fafc] border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <FiMail className="text-gray-400 text-base shrink-0" />
+                      <span
+                        className={`text-sm font-medium truncate ${
+                          darkMode ? "text-gray-200" : "text-gray-800"
+                        }`}
+                      >
+                        {newEmailInput}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEmailStep(1)}
+                      className="text-xs font-semibold text-[#FF8624] hover:underline cursor-pointer shrink-0"
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+
+                {/* OTP Input */}
+                <div>
+                  <label
+                    className={`text-xs font-semibold block mb-1.5 ${
+                      darkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Enter 4-Digit Verification Code
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={4}
+                    value={emailOtpInput}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      if (val.length <= 4) setEmailOtpInput(val);
+                    }}
+                    className={`w-full px-3.5 py-2.5 text-center text-lg font-bold font-mono tracking-[0.5em] rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#FF8624]/20 focus:border-[#FF8624] transition ${
+                      darkMode
+                        ? "border-[#2a3942] bg-[#111b21] text-white placeholder-gray-600"
+                        : "border-gray-300 bg-white text-gray-900 placeholder-gray-300"
+                    }`}
+                    placeholder="••••"
+                  />
+                </div>
+
+                {/* Information Alert Banner */}
+                <div
+                  className={`border rounded-xl p-3.5 flex items-center gap-2.5 ${
+                    darkMode
+                      ? "bg-blue-950/30 border-blue-900/40"
+                      : "bg-[#eff6ff] border-[#dbeafe]"
+                  }`}
+                >
+                  <FiInfo className="text-[#3b82f6] text-base shrink-0" />
+                  <p
+                    className={`text-xs leading-relaxed font-medium ${
+                      darkMode ? "text-blue-300" : "text-[#2563eb]"
+                    }`}
+                  >
+                    Check your inbox or spam folder for the 4-digit code.
+                  </p>
+                </div>
+
+                {/* Resend OTP / Countdown Timer */}
+                <div className="flex items-center justify-between px-1 text-xs">
+                  <span
+                    className={darkMode ? "text-gray-400" : "text-gray-500"}
+                  >
+                    Didn't receive it?
+                  </span>
+                  {timer > 0 ? (
+                    <span className="font-semibold text-gray-400">
+                      Resend code in 00:{timer.toString().padStart(2, "0")}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={requestEmailChange.isPending}
+                      onClick={handleResendOtp}
+                      className="font-bold text-[#FF8624] hover:underline cursor-pointer"
+                    >
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailStep(1);
+                      setEmailError("");
+                      setEmailSuccess("");
+                    }}
+                    className={`w-1/2 py-2.5 text-xs font-semibold rounded-xl transition cursor-pointer border ${
+                      darkMode
+                        ? "border-[#2a3942] bg-[#111b21] text-gray-300 hover:bg-[#202c33]"
+                        : "border-gray-200 bg-[#f8fafc] text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={verifyEmailChange.isPending}
+                    className="w-1/2 py-2.5 text-xs font-semibold bg-[#FF8624] hover:bg-[#ea7313] text-white rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {verifyEmailChange.isPending ? "Verifying..." : "Verify OTP"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* STEP 3: Success State */}
+            {emailStep === 3 && (
+              <div className="space-y-3 pt-0 pb-0">
+                <div className="text-center space-y-2">
+                  <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-500 text-3xl">
+                    <FiCheckCircle className="w-8 h-8" />
+                  </div>
+                  <h4
+                    className={`text-base font-bold ${
+                      darkMode ? "text-gray-100" : "text-gray-900"
+                    }`}
+                  >
+                    Email Updated Successfully!
+                  </h4>
+                  <p
+                    className={`text-xs ${
+                      darkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    Your primary account email address has been updated to:
+                  </p>
+                </div>
+
+                <div
+                  className={`w-full px-4 py-3 rounded-xl border text-center font-semibold text-sm ${
+                    darkMode
+                      ? "bg-[#111b21] border-[#2a3942] text-gray-200"
+                      : "bg-[#f8fafc] border-gray-200 text-gray-800"
+                  }`}
+                >
+                  {newEmailInput || user?.user?.email}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCloseEmailModal}
+                  className="w-full py-2.5 text-xs font-semibold bg-[#FF8624] hover:bg-[#ea7313] text-white rounded-xl transition shadow-xs cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -9,6 +9,11 @@ const userSchema = new mongoose.Schema(
     about: { type: String, default: "Hey there! I am using Chat App." },
     lastSeen: Date,
     isOnline: { type: Boolean, default: false },
+    resetPasswordOtp: String,
+    resetPasswordExpires: Date,
+    changeEmailOtp: String,
+    changeEmailExpires: Date,
+    pendingEmail: String,
   },
   { timestamps: true }
 );

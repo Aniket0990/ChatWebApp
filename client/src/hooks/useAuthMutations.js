@@ -24,6 +24,26 @@ export const changePassword = async (payload) => {
   return data;
 };
 
+export const forgotPassword = async (payload) => {
+  const { data } = await api.post("/auth/forgot-password", payload);
+  return data;
+};
+
+export const resetPassword = async (payload) => {
+  const { data } = await api.post("/auth/reset-password", payload);
+  return data;
+};
+
+export const requestEmailChange = async (payload) => {
+  const { data } = await api.post("/auth/change-email-request", payload);
+  return data;
+};
+
+export const verifyEmailChange = async (payload) => {
+  const { data } = await api.post("/auth/change-email-verify", payload);
+  return data;
+};
+
 export const uploadFile = async (file) => {
   // Shrink oversized images to the size cap before they leave the browser.
   const prepared = await prepareFileForUpload(file);
@@ -49,3 +69,9 @@ export const useUpdateProfile = () =>
 
 export const useChangePassword = () =>
   useMutation({ mutationFn: changePassword });
+
+export const useForgotPassword = () => useMutation({ mutationFn: forgotPassword });
+export const useResetPassword = () => useMutation({ mutationFn: resetPassword });
+
+export const useRequestEmailChange = () => useMutation({ mutationFn: requestEmailChange });
+export const useVerifyEmailChange = () => useMutation({ mutationFn: verifyEmailChange });
