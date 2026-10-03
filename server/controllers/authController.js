@@ -76,7 +76,7 @@ exports.forgotPassword = async (req, res) => {
     res.json({ message: "Verification code sent to your email" });
   } catch (error) {
     console.error("Forgot password error:", error);
-    res.status(500).json({ message: error.message || "Failed to send reset code" });
+    res.status(500).json({ message: "Failed to send reset code" });
   }
 };
 
@@ -298,7 +298,7 @@ exports.requestEmailChange = async (req, res) => {
     res.json({ message: "Verification code sent to your new email" });
   } catch (error) {
     console.error("Request email change error:", error);
-    res.status(500).json({ message: error.message || "Failed to send verification code" });
+    res.status(500).json({ message: "Failed to send verification code" });
   }
 };
 

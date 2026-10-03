@@ -1,41 +1,40 @@
 const nodemailer = require("nodemailer");
 
-exports.sendEmail = async (to, subject, text) => {
-  const mailUser = process.env.MAIL_USER ? process.env.MAIL_USER.trim() : "";
-  // Remove all spaces and quotation marks that might have been copied into Render dashboard
-  const mailPass = process.env.MAIL_PASS
-    ? process.env.MAIL_PASS.replace(/[\s"']/g, "").trim()
-    : "";
+let transporter;
 
-  if (!mailUser || !mailPass) {
-    throw new Error(
-      "Email credentials not configured. Please ensure MAIL_USER and MAIL_PASS are set in your Render Environment Variables."
-    );
+const getTransporter = () => {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true, // Use SSL on port 465 for fast cloud delivery on Render/AWS
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
+      },
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
+    });
   }
+  return transporter;
+};
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: mailUser,
-      pass: mailPass,
-    },
-    connectionTimeout: 15000, // 15s timeout prevents 1-minute hangs
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
-  });
-
-  const mailOptions = {
-    from: `"Connecto" <${mailUser}>`,
-    to: to,
-    subject: subject,
-    text: text,
-  };
-
+exports.sendEmail = async (to, subject, text) => {
   try {
-    await transporter.sendMail(mailOptions);
+    const mailTransporter = getTransporter();
+
+    const mailOptions = {
+      from: `"Connecto" <${process.env.MAIL_USER}>`,
+      to: to,
+      subject: subject,
+      text: text,
+    };
+
+    await mailTransporter.sendMail(mailOptions);
     console.log(`[Nodemailer] Email sent successfully to: ${to}`);
   } catch (error) {
     console.error("[Nodemailer] Error sending email:", error);
-    throw new Error(`Email delivery failed: ${error.message}`);
+    throw error;
   }
 };
